@@ -1,0 +1,48 @@
+/home/j-k14d108/graspnet-baseline/utils/loss_utils.py:89: UserWarning: Using torch.cross without specifying the dim arg is deprecated.
+Please either pass the dim explicitly or simply use torch.linalg.cross.
+The default value of dim will change to agree with that of linalg.cross in a future release. (Triggered internally at ../aten/src/ATen/native/Cross.cpp:62.)
+  axis_z = torch.cross(axis_x, axis_y)
+======================================================================
+GraspNet Baseline - Latency Benchmark
+======================================================================
+Device: NVIDIA H200 NVL
+PyTorch: 2.3.0+cu121, CUDA: 12.1
+Checkpoint: logs/log_rs/checkpoint-rs.tar
+Data: doc/example_data
+NUM_POINT: 20000, NUM_VIEW: 300
+Warmup: 3, Runs: 20
+======================================================================
+
+[1/4] Loading model...
+      Model loaded in 187.6 ms
+      Params: 1,025,964 (4.1 MB FP32)
+
+[2/4] Loading + processing data...
+      Point cloud: torch.Size([1, 20000, 3])
+      Workspace cloud: 513,688 points
+
+[3/4] Warmup x 3...
+      Warmup done.
+
+[4/4] Benchmark x 20...
+      Run 1: total=146.76ms, n_grasps=120
+
+======================================================================
+RESULTS
+======================================================================
+
+Stage                   mean (ms)        std        min        max
+----------------------------------------------------------------------
+forward_ms                  66.38       0.09      66.24      66.54
+decode_ms                    0.90       0.02       0.88       0.95
+collision_ms                79.82       2.70      78.74      89.87
+nms_sort_ms                  0.35       0.01       0.34       0.37
+total_ms                   147.45       2.68     146.34     157.36
+----------------------------------------------------------------------
+
+Throughput (full pipeline): 6.8 FPS
+Throughput (forward only):  15.1 FPS
+Avg n_grasps after collision+NMS: 120
+
+GPU peak memory: 0.72 GB allocated, 1.08 GB reserved
+======================================================================

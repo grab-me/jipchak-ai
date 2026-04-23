@@ -1,0 +1,37 @@
+running install
+/home/j-k14d108/.conda/envs/graspnet/lib/python3.11/site-packages/setuptools/_distutils/cmd.py:90: SetuptoolsDeprecationWarning: setup.py install is deprecated.
+!!
+
+        ********************************************************************************
+        Please avoid running ``setup.py`` directly.
+        Instead, use pypa/build, pypa/installer or other
+        standards-based tools.
+
+        This deprecation is overdue, please update your project and remove deprecated
+        calls to avoid build errors in the future.
+
+        See https://blog.ganssle.io/articles/2021/10/setup-py-deprecated.html for details.
+        ********************************************************************************
+
+!!
+  self.initialize_options()
+running build
+running build_ext
+/home/j-k14d108/.conda/envs/graspnet/lib/python3.11/site-packages/torch/utils/cpp_extension.py:499: UserWarning: Attempted to use ninja as the BuildExtension backend but we could not find ninja.. Falling back to using the slow distutils backend.
+  warnings.warn(msg.format('we could not find ninja.'))
+/home/j-k14d108/.conda/envs/graspnet/lib/python3.11/site-packages/torch/utils/cpp_extension.py:418: UserWarning: The detected CUDA version (12.8) has a minor version mismatch with the version that was used to compile PyTorch (12.1). Most likely this shouldn't be a problem.
+  warnings.warn(CUDA_MISMATCH_WARN.format(cuda_str_version, torch.version.cuda))
+/home/j-k14d108/.conda/envs/graspnet/lib/python3.11/site-packages/torch/utils/cpp_extension.py:428: UserWarning: There are no g++ version bounds defined for CUDA version 12.8
+  warnings.warn(f'There are no {compiler_name} version bounds defined for CUDA version {cuda_str_version}')
+running install_lib
+copying build/lib.linux-x86_64-cpython-311/pointnet2/_ext.cpython-311-x86_64-linux-gnu.so -> /home/j-k14d108/.conda/envs/graspnet/lib/python3.11/site-packages/pointnet2
+running install_egg_info
+running egg_info
+writing pointnet2.egg-info/PKG-INFO
+writing dependency_links to pointnet2.egg-info/dependency_links.txt
+writing top-level names to pointnet2.egg-info/top_level.txt
+reading manifest file 'pointnet2.egg-info/SOURCES.txt'
+writing manifest file 'pointnet2.egg-info/SOURCES.txt'
+removing '/home/j-k14d108/.conda/envs/graspnet/lib/python3.11/site-packages/pointnet2-0.0.0-py3.11.egg-info' (and everything under it)
+Copying pointnet2.egg-info to /home/j-k14d108/.conda/envs/graspnet/lib/python3.11/site-packages/pointnet2-0.0.0-py3.11.egg-info
+running install_scripts

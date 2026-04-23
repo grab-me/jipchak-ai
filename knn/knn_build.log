@@ -1,0 +1,90 @@
+running install
+/home/j-k14d108/.conda/envs/graspnet/lib/python3.11/site-packages/setuptools/_distutils/cmd.py:90: SetuptoolsDeprecationWarning: setup.py install is deprecated.
+!!
+
+        ********************************************************************************
+        Please avoid running ``setup.py`` directly.
+        Instead, use pypa/build, pypa/installer or other
+        standards-based tools.
+
+        This deprecation is overdue, please update your project and remove deprecated
+        calls to avoid build errors in the future.
+
+        See https://blog.ganssle.io/articles/2021/10/setup-py-deprecated.html for details.
+        ********************************************************************************
+
+!!
+  self.initialize_options()
+running build
+running build_ext
+/home/j-k14d108/.conda/envs/graspnet/lib/python3.11/site-packages/torch/utils/cpp_extension.py:499: UserWarning: Attempted to use ninja as the BuildExtension backend but we could not find ninja.. Falling back to using the slow distutils backend.
+  warnings.warn(msg.format('we could not find ninja.'))
+/home/j-k14d108/.conda/envs/graspnet/lib/python3.11/site-packages/torch/utils/cpp_extension.py:418: UserWarning: The detected CUDA version (12.8) has a minor version mismatch with the version that was used to compile PyTorch (12.1). Most likely this shouldn't be a problem.
+  warnings.warn(CUDA_MISMATCH_WARN.format(cuda_str_version, torch.version.cuda))
+/home/j-k14d108/.conda/envs/graspnet/lib/python3.11/site-packages/torch/utils/cpp_extension.py:428: UserWarning: There are no g++ version bounds defined for CUDA version 12.8
+  warnings.warn(f'There are no {compiler_name} version bounds defined for CUDA version {cuda_str_version}')
+building 'knn_pytorch.knn_pytorch' extension
+creating build/temp.linux-x86_64-cpython-311/home/j-k14d108/graspnet-baseline/knn/src/cpu
+creating build/temp.linux-x86_64-cpython-311/home/j-k14d108/graspnet-baseline/knn/src/cuda
+g++ -pthread -B /home/j-k14d108/.conda/envs/graspnet/compiler_compat -DNDEBUG -fwrapv -O2 -Wall -fPIC -O2 -isystem /home/j-k14d108/.conda/envs/graspnet/include -fPIC -O2 -isystem /home/j-k14d108/.conda/envs/graspnet/include -fPIC -DWITH_CUDA -I/home/j-k14d108/graspnet-baseline/knn/src -I/home/j-k14d108/.conda/envs/graspnet/lib/python3.11/site-packages/torch/include -I/home/j-k14d108/.conda/envs/graspnet/lib/python3.11/site-packages/torch/include/torch/csrc/api/include -I/home/j-k14d108/.conda/envs/graspnet/lib/python3.11/site-packages/torch/include/TH -I/home/j-k14d108/.conda/envs/graspnet/lib/python3.11/site-packages/torch/include/THC -I/usr/local/cuda/include -I/home/j-k14d108/.conda/envs/graspnet/include/python3.11 -c /home/j-k14d108/graspnet-baseline/knn/src/cpu/knn_cpu.cpp -o build/temp.linux-x86_64-cpython-311/home/j-k14d108/graspnet-baseline/knn/src/cpu/knn_cpu.o -DTORCH_API_INCLUDE_EXTENSION_H -DPYBIND11_COMPILER_TYPE=\"_gcc\" -DPYBIND11_STDLIB=\"_libstdcpp\" -DPYBIND11_BUILD_ABI=\"_cxxabi1011\" -DTORCH_EXTENSION_NAME=knn_pytorch -D_GLIBCXX_USE_CXX11_ABI=0 -std=c++17
+/usr/local/cuda/bin/nvcc -DWITH_CUDA -I/home/j-k14d108/graspnet-baseline/knn/src -I/home/j-k14d108/.conda/envs/graspnet/lib/python3.11/site-packages/torch/include -I/home/j-k14d108/.conda/envs/graspnet/lib/python3.11/site-packages/torch/include/torch/csrc/api/include -I/home/j-k14d108/.conda/envs/graspnet/lib/python3.11/site-packages/torch/include/TH -I/home/j-k14d108/.conda/envs/graspnet/lib/python3.11/site-packages/torch/include/THC -I/usr/local/cuda/include -I/home/j-k14d108/.conda/envs/graspnet/include/python3.11 -c /home/j-k14d108/graspnet-baseline/knn/src/cuda/knn.cu -o build/temp.linux-x86_64-cpython-311/home/j-k14d108/graspnet-baseline/knn/src/cuda/knn.o -D__CUDA_NO_HALF_OPERATORS__ -D__CUDA_NO_HALF_CONVERSIONS__ -D__CUDA_NO_BFLOAT16_CONVERSIONS__ -D__CUDA_NO_HALF2_OPERATORS__ --expt-relaxed-constexpr --compiler-options '-fPIC' -DCUDA_HAS_FP16=1 -D__CUDA_NO_HALF_OPERATORS__ -D__CUDA_NO_HALF_CONVERSIONS__ -D__CUDA_NO_HALF2_OPERATORS__ -DTORCH_API_INCLUDE_EXTENSION_H -DPYBIND11_COMPILER_TYPE=\"_gcc\" -DPYBIND11_STDLIB=\"_libstdcpp\" -DPYBIND11_BUILD_ABI=\"_cxxabi1011\" -DTORCH_EXTENSION_NAME=knn_pytorch -D_GLIBCXX_USE_CXX11_ABI=0 -gencode=arch=compute_90,code=sm_90 -std=c++17
+/home/j-k14d108/graspnet-baseline/knn/src/cuda/knn.cu(231): warning #177-D: variable "t_k_16x16" was declared but never referenced
+    dim3 t_k_16x16(16, 16, 1);
+         ^
+
+Remark: The warnings can be suppressed with "-diag-suppress <warning-number>"
+
+g++ -pthread -B /home/j-k14d108/.conda/envs/graspnet/compiler_compat -DNDEBUG -fwrapv -O2 -Wall -fPIC -O2 -isystem /home/j-k14d108/.conda/envs/graspnet/include -fPIC -O2 -isystem /home/j-k14d108/.conda/envs/graspnet/include -fPIC -DWITH_CUDA -I/home/j-k14d108/graspnet-baseline/knn/src -I/home/j-k14d108/.conda/envs/graspnet/lib/python3.11/site-packages/torch/include -I/home/j-k14d108/.conda/envs/graspnet/lib/python3.11/site-packages/torch/include/torch/csrc/api/include -I/home/j-k14d108/.conda/envs/graspnet/lib/python3.11/site-packages/torch/include/TH -I/home/j-k14d108/.conda/envs/graspnet/lib/python3.11/site-packages/torch/include/THC -I/usr/local/cuda/include -I/home/j-k14d108/.conda/envs/graspnet/include/python3.11 -c /home/j-k14d108/graspnet-baseline/knn/src/vision.cpp -o build/temp.linux-x86_64-cpython-311/home/j-k14d108/graspnet-baseline/knn/src/vision.o -DTORCH_API_INCLUDE_EXTENSION_H -DPYBIND11_COMPILER_TYPE=\"_gcc\" -DPYBIND11_STDLIB=\"_libstdcpp\" -DPYBIND11_BUILD_ABI=\"_cxxabi1011\" -DTORCH_EXTENSION_NAME=knn_pytorch -D_GLIBCXX_USE_CXX11_ABI=0 -std=c++17
+In file included from /home/j-k14d108/graspnet-baseline/knn/src/vision.cpp:1:
+/home/j-k14d108/graspnet-baseline/knn/src/knn.h: In function ‘int knn(at::Tensor&, at::Tensor&, at::Tensor&)’:
+/home/j-k14d108/graspnet-baseline/knn/src/knn.h:23:37: warning: ‘T* at::Tensor::data() const [with T = float]’ is deprecated: Tensor.data<T>() is deprecated. Please use Tensor.data_ptr<T>() instead. [-Wdeprecated-declarations]
+   23 |     float *ref_dev = ref.data<float>();
+      |                      ~~~~~~~~~~~~~~~^~
+In file included from /home/j-k14d108/.conda/envs/graspnet/lib/python3.11/site-packages/torch/include/ATen/core/Tensor.h:3,
+                 from /home/j-k14d108/.conda/envs/graspnet/lib/python3.11/site-packages/torch/include/ATen/Tensor.h:3,
+                 from /home/j-k14d108/.conda/envs/graspnet/lib/python3.11/site-packages/torch/include/torch/csrc/autograd/function_hook.h:3,
+                 from /home/j-k14d108/.conda/envs/graspnet/lib/python3.11/site-packages/torch/include/torch/csrc/autograd/cpp_hook.h:2,
+                 from /home/j-k14d108/.conda/envs/graspnet/lib/python3.11/site-packages/torch/include/torch/csrc/autograd/variable.h:6,
+                 from /home/j-k14d108/.conda/envs/graspnet/lib/python3.11/site-packages/torch/include/torch/csrc/autograd/autograd.h:3,
+                 from /home/j-k14d108/.conda/envs/graspnet/lib/python3.11/site-packages/torch/include/torch/csrc/api/include/torch/autograd.h:3,
+                 from /home/j-k14d108/.conda/envs/graspnet/lib/python3.11/site-packages/torch/include/torch/csrc/api/include/torch/all.h:7,
+                 from /home/j-k14d108/.conda/envs/graspnet/lib/python3.11/site-packages/torch/include/torch/extension.h:5,
+                 from /home/j-k14d108/graspnet-baseline/knn/src/cpu/vision.h:2,
+                 from /home/j-k14d108/graspnet-baseline/knn/src/knn.h:2:
+/home/j-k14d108/.conda/envs/graspnet/lib/python3.11/site-packages/torch/include/ATen/core/TensorBody.h:247:7: note: declared here
+  247 |   T * data() const {
+      |       ^~~~
+/home/j-k14d108/graspnet-baseline/knn/src/knn.h:24:41: warning: ‘T* at::Tensor::data() const [with T = float]’ is deprecated: Tensor.data<T>() is deprecated. Please use Tensor.data_ptr<T>() instead. [-Wdeprecated-declarations]
+   24 |     float *query_dev = query.data<float>();
+      |                        ~~~~~~~~~~~~~~~~~^~
+/home/j-k14d108/.conda/envs/graspnet/lib/python3.11/site-packages/torch/include/ATen/core/TensorBody.h:247:7: note: declared here
+  247 |   T * data() const {
+      |       ^~~~
+/home/j-k14d108/graspnet-baseline/knn/src/knn.h:25:35: warning: ‘T* at::Tensor::data() const [with T = long int]’ is deprecated: Tensor.data<T>() is deprecated. Please use Tensor.data_ptr<T>() instead. [-Wdeprecated-declarations]
+   25 |     long *idx_dev = idx.data<long>();
+      |                     ~~~~~~~~~~~~~~^~
+/home/j-k14d108/.conda/envs/graspnet/lib/python3.11/site-packages/torch/include/ATen/core/TensorBody.h:247:7: note: declared here
+  247 |   T * data() const {
+      |       ^~~~
+/home/j-k14d108/graspnet-baseline/knn/src/knn.h:30:15: warning: ‘at::DeprecatedTypeProperties& at::Tensor::type() const’ is deprecated: Tensor.type() is deprecated. Instead use Tensor.options(), which in many cases (e.g. in a constructor) is a drop-in replacement. If you were using data from type(), that is now available from Tensor itself, so instead of tensor.type().scalar_type(), use tensor.scalar_type() instead and instead of tensor.type().backend() use tensor.device(). [-Wdeprecated-declarations]
+   30 |   if (ref.type().is_cuda()) {
+      |       ~~~~~~~~^~
+/home/j-k14d108/.conda/envs/graspnet/lib/python3.11/site-packages/torch/include/ATen/core/TensorBody.h:225:30: note: declared here
+  225 |   DeprecatedTypeProperties & type() const {
+      |                              ^~~~
+creating build/lib.linux-x86_64-cpython-311/knn_pytorch
+g++ -pthread -B /home/j-k14d108/.conda/envs/graspnet/compiler_compat -DNDEBUG -fwrapv -O2 -Wall -fPIC -O2 -isystem /home/j-k14d108/.conda/envs/graspnet/include -fPIC -O2 -isystem /home/j-k14d108/.conda/envs/graspnet/include -shared build/temp.linux-x86_64-cpython-311/home/j-k14d108/graspnet-baseline/knn/src/cpu/knn_cpu.o build/temp.linux-x86_64-cpython-311/home/j-k14d108/graspnet-baseline/knn/src/cuda/knn.o build/temp.linux-x86_64-cpython-311/home/j-k14d108/graspnet-baseline/knn/src/vision.o -L/home/j-k14d108/.conda/envs/graspnet/lib/python3.11/site-packages/torch/lib -L/usr/local/cuda/lib64 -lc10 -ltorch -ltorch_cpu -ltorch_python -lcudart -lc10_cuda -ltorch_cuda -o build/lib.linux-x86_64-cpython-311/knn_pytorch/knn_pytorch.cpython-311-x86_64-linux-gnu.so
+running install_lib
+creating /home/j-k14d108/.conda/envs/graspnet/lib/python3.11/site-packages/knn_pytorch
+copying build/lib.linux-x86_64-cpython-311/knn_pytorch/knn_pytorch.cpython-311-x86_64-linux-gnu.so -> /home/j-k14d108/.conda/envs/graspnet/lib/python3.11/site-packages/knn_pytorch
+running install_egg_info
+running egg_info
+creating knn_pytorch.egg-info
+writing knn_pytorch.egg-info/PKG-INFO
+writing dependency_links to knn_pytorch.egg-info/dependency_links.txt
+writing top-level names to knn_pytorch.egg-info/top_level.txt
+writing manifest file 'knn_pytorch.egg-info/SOURCES.txt'
+reading manifest file 'knn_pytorch.egg-info/SOURCES.txt'
+writing manifest file 'knn_pytorch.egg-info/SOURCES.txt'
+Copying knn_pytorch.egg-info to /home/j-k14d108/.conda/envs/graspnet/lib/python3.11/site-packages/knn_pytorch-0.1-py3.11.egg-info
+running install_scripts

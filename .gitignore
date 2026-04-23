@@ -1,0 +1,18 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# Build artifacts
+build/
+*.egg-info/
+*.so
+
+# Backup
+*.bak
+.git.original-graspnet/
+*.tar.gz
+
+# Logs (선택)
+benchmark.log
+demo.log
