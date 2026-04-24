@@ -30,6 +30,8 @@ def parse_args():
                         help='Number of grasps to consider per image')
     parser.add_argument('--save', type=int, default=0,
                         help='Save the results')
+    parser.add_argument('--output-size', type=int, default=224,
+                        help='Network input crop size (224 for cornell, 300 for jacquard)')
     parser.add_argument('--cpu', dest='force_cpu', action='store_true', default=False,
                         help='Force code to run in CPU mode')
 
@@ -55,7 +57,8 @@ if __name__ == '__main__':
     # Get the compute device
     device = get_device(args.force_cpu)
 
-    img_data = CameraData(include_depth=args.use_depth, include_rgb=args.use_rgb)
+    img_data = CameraData(include_depth=args.use_depth, include_rgb=args.use_rgb,
+                          output_size=args.output_size)
 
     x, depth_img, rgb_img = img_data.get_data(rgb=rgb, depth=depth)
 
