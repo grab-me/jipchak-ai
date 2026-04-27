@@ -16,3 +16,4 @@ build/
 # Logs (선택)
 benchmark.log
 demo.log
+detection-poc/*.pt
