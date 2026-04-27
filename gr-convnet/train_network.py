@@ -112,6 +112,13 @@ def validate(net, device, val_data, iou_threshold):
 
     with torch.no_grad():
         for x, y, didx, rot, zoom_factor in val_data:
+            # DataLoader 가 metadata 를 batch tensor 로 묶음 — get_gtbb 호출 전 scalar 풀기
+            if torch.is_tensor(didx):
+                didx = int(didx.item())
+            if torch.is_tensor(rot):
+                rot = float(rot.item())
+            if torch.is_tensor(zoom_factor):
+                zoom_factor = float(zoom_factor.item())
             xc = x.to(device)
             yc = [yy.to(device) for yy in y]
             lossd = net.compute_loss(xc, yc)
