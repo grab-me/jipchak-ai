@@ -72,6 +72,9 @@ def run_one(net, device, rgb, depth, output_size, use_rgb, use_depth, n_grasps):
         include_depth=use_depth, include_rgb=use_rgb,
     )
     x, _, _ = cam.get_data(rgb=rgb, depth=depth)
+    # depth-only/rgb-only 분기에서 CameraData 가 batch dim 을 안 붙이는 경우 방어
+    if x.dim() == 3:
+        x = x.unsqueeze(0)
     rgb_crop = cam.get_rgb(rgb, norm=False)
 
     x = x.to(device)
