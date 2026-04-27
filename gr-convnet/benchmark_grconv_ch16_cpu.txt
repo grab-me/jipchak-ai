@@ -1,0 +1,40 @@
+======================================================================
+GR-ConvNet - Latency Benchmark
+======================================================================
+Device: CPU  (threads: 96)
+PyTorch: 2.3.0+cu121, CUDA build: 12.1
+Network:  trained-models/cornell-randsplit-rgbd-grconvnet3-drop1-ch16/epoch_30_iou_0.97
+RGB:      ../graspnet-baseline/doc/example_data/color.png
+Depth:    ../graspnet-baseline/doc/example_data/depth.png
+Input:    224x224, use_depth=1, use_rgb=1
+Warmup: 1, Runs: 5
+======================================================================
+
+[1/4] Loading + preprocessing data...
+      RGB: (720, 1280, 3), depth: (720, 1280, 1)
+      Network input tensor: (1, 4, 224, 224)
+
+[2/4] Loading model...
+      Model loaded in 4.3 ms
+      Params: 479,156 (1.9 MB FP32)
+
+[3/4] Warmup x 1...
+      Warmup done.
+
+[4/4] Benchmark x 5...
+      Run 1: fwd=9.89ms, post=1.91ms
+
+======================================================================
+RESULTS
+======================================================================
+
+Stage                   mean (ms)        std        min        max
+----------------------------------------------------------------------
+forward_ms                   9.43       0.87       7.70       9.89
+post_ms                      1.90       0.06       1.82       2.00
+total_ms                    11.33       0.89       9.56      11.81
+----------------------------------------------------------------------
+
+Throughput (full pipeline): 88.3 FPS
+Throughput (forward only):  106.1 FPS
+======================================================================

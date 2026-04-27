@@ -1,0 +1,78 @@
+======================================================================
+GraspNet Baseline - Latency Benchmark
+======================================================================
+Device: CPU  (threads: 96)
+PyTorch: 2.3.0+cu121, CUDA build: 12.1
+Checkpoint: logs/log_rs/checkpoint-rs.tar
+Data: doc/example_data
+NUM_POINT: 20000, NUM_VIEW: 300
+Warmup: 1, Runs: 5
+======================================================================
+
+[1/4] Loading model...
+      Model loaded in 37.4 ms
+      Params: 1,025,964 (4.1 MB FP32)
+
+[2/4] Loading + processing data...
+      Point cloud: torch.Size([1, 20000, 3])
+      Workspace cloud: 513,688 points
+
+[3/4] Warmup x 1...
+Traceback (most recent call last):
+  File "/home/j-k14d108/jipchak-ai-chaemok/graspnet-baseline/benchmark.py", line 215, in <module>
+    main()
+  File "/home/j-k14d108/jipchak-ai-chaemok/graspnet-baseline/benchmark.py", line 174, in main
+    _, _ = run_inference(net, device, ep_copy, cloud_masked)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/j-k14d108/jipchak-ai-chaemok/graspnet-baseline/benchmark.py", line 99, in run_inference
+    fwd_out, t_fwd = time_block('forward', _forward, device)
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/j-k14d108/jipchak-ai-chaemok/graspnet-baseline/benchmark.py", line 84, in time_block
+    out = fn()
+          ^^^^
+  File "/home/j-k14d108/jipchak-ai-chaemok/graspnet-baseline/benchmark.py", line 98, in _forward
+    return net(end_points)
+           ^^^^^^^^^^^^^^^
+  File "/home/j-k14d108/.conda/envs/jipchak/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1532, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/j-k14d108/.conda/envs/jipchak/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1541, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/j-k14d108/jipchak-ai-chaemok/graspnet-baseline/models/graspnet.py", line 71, in forward
+    end_points = self.view_estimator(end_points)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/j-k14d108/.conda/envs/jipchak/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1532, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/j-k14d108/.conda/envs/jipchak/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1541, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/j-k14d108/jipchak-ai-chaemok/graspnet-baseline/models/graspnet.py", line 33, in forward
+    seed_features, seed_xyz, end_points = self.backbone(pointcloud, end_points)
+                                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/j-k14d108/.conda/envs/jipchak/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1532, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/j-k14d108/.conda/envs/jipchak/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1541, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/j-k14d108/jipchak-ai-chaemok/graspnet-baseline/models/backbone.py", line 105, in forward
+    xyz, features, fps_inds = self.sa1(xyz, features)
+                              ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/j-k14d108/.conda/envs/jipchak/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1532, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/j-k14d108/.conda/envs/jipchak/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1541, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/j-k14d108/jipchak-ai-chaemok/graspnet-baseline/pointnet2/pointnet2_modules.py", line 235, in forward
+    inds = pointnet2_utils.furthest_point_sample(xyz, self.npoint)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/j-k14d108/.conda/envs/jipchak/lib/python3.11/site-packages/torch/autograd/function.py", line 598, in apply
+    return super().apply(*args, **kwargs)  # type: ignore[misc]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/j-k14d108/jipchak-ai-chaemok/graspnet-baseline/pointnet2/pointnet2_utils.py", line 71, in forward
+    return _ext.furthest_point_sampling(xyz, npoint)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+RuntimeError: CPU not supported
