@@ -104,11 +104,70 @@ GraspNet `doc/example_data/color.png` 입력, conf=0.05, warmup 후 평균.
 
 ### 결론 (Ultralytics 기준)
 
-**latency 검증 완료**. n/s/m 사이즈 모두 EC2 운영 가능. 정확도는 도메인 fine-tune 후 의미 있음 (Grasp AI 와 동일 결론).
-
-→ 진짜 채택은 🟢 후보(YOLOX/YOLOv6) 측정 후 결정. 위 결과는 "이 latency 면 충분히 빠르다" 는 reference.
+**latency 검증 완료**. n/s/m 사이즈 모두 EC2 운영 가능. 정확도는 도메인 fine-tune 후 의미 있음. 단 **AGPL 라이선스라 채택 X**.
 
 raw: [detection-poc/yolo_compare.txt](detection-poc/yolo_compare.txt)
+
+## 6. 라이선스 OK 후보 측정 (🟢)
+
+### 6-1. RT-DETR (Apache-2.0)
+
+| 모델 | GPU | CPU 4t | det | params |
+|---|---|---|---|---|
+| rtdetr-l | 44.7ms | **243.8ms** | 25 | 33.0M |
+| rtdetr-x | 40.0ms | 372.4ms | 31 | 67.5M |
+
+→ **CPU 200ms 초과 — EC2 운영 어려움**. Transformer 무게가 발목.
+
+### 6-2. torchvision detection 모델 (BSD-3) ★ 채택 후보 발견
+
+| 모델 | GPU | CPU 4t | det | params | 운영 |
+|---|---|---|---|---|---|
+| **ssdlite320_mobilenet_v3_large** | 31.1 | **37.1** | 46 | 3.4M | ✅ |
+| ssd300_vgg16 | 12.9 | 172.3 | 26 | 35.6M | ⚠️ |
+| frcnn_mobilenet_v3_large_fpn | 9.6 | 318.6 | 27 | 19.4M | ❌ |
+| frcnn_resnet50_fpn | 12.6 | 1552.2 | 33 | 41.8M | ❌ |
+| fcos_resnet50_fpn | 12.6 | 1276.2 | 96 | 32.3M | ❌ |
+| retinanet_resnet50_fpn | 12.9 | 1439.7 | 190 | 34.0M | ❌ |
+
+raw: [detection-poc/tv_compare.txt](detection-poc/tv_compare.txt)
+
+## 7. Detection AI 잠정 채택: `ssdlite320_mobilenet_v3_large`
+
+전체 17+ 모델 측정 중 **라이선스 OK + EC2 운영 가능 + 가장 빠름** 조합 유일.
+
+**근거**:
+- 라이선스 BSD-3 → 상업화 100% OK
+- CPU 4t **37.1ms** (AGPL YOLO 들보다도 빠름)
+- params 3.4M (매우 가벼움)
+- torchvision 기본 패키지 — 별도 셋업 0
+- MobileNetV3 backbone — 모바일 앱 친화적
+- COCO 80 클래스 사전학습 (`teddy bear` 포함 → 봉제 인형 1차 커버)
+
+**Grasp + Detection 통합 latency**:
+- Detection 37ms + Grasp 20.7ms = **~58ms (17 FPS)**
+- 200ms 한계 대비 3.4배 마진 — 매우 여유
+
+**단서/한계** (Grasp AI 와 동일 패턴):
+- 사전학습은 COCO 일반 사물 — 봉제 인형 도메인 정확도 미검증
+- conf threshold 0.05 에서 46개 detection — 후처리 필요 (NMS, bbox 면적 필터)
+- 인형뽑기 환경 fine-tune 필수 (RealSense 셋업 후)
+
+**기존 후보들과의 관계**:
+- YOLOX (Apache) 셋업은 사실상 **불필요** (SSDlite로 해결)
+- YOLOv6 (Apache) 도 시간 투자 가치 낮음
+- 단 fine-tune 시 비교 가치는 남음 (도메인 정확도 더 높을 가능성)
+
+## 8. 후속 작업
+
+| 우선 | 작업 | 비고 |
+|---|---|---|
+| 1 | RealSense 셋업 후 인형 RGB-D 수집 | Grasp AI 와 같은 데이터 |
+| 2 | SSDlite COCO 사전학습으로 1차 인형 detect 검증 | 인형 사진 인터넷 수집으로도 가능 |
+| 3 | bbox + grasp center 동시 레이블링 도구 | 두 AI 데이터 한 번에 |
+| 4 | SSDlite fine-tune | torchvision 학습 표준 (COCO format) |
+| 5 | Grasp + Detection 통합 wrapper | bbox → workspace mask → grasp 후보 마스킹 |
+| 6 | (선택) YOLOX/YOLOv6 추가 비교 | 정확도 차이 클 경우만 |
 
 ## 4. 인형 인식 정확도
 
