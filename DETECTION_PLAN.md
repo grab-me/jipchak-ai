@@ -40,21 +40,75 @@ RGB-D 카메라
 - 사용자에게 "어떤 인형 잡았는지" 보여줄 수 있음 (결과 영상 QR)
 - 인형 카운트 / 박스 안 분포 분석 가능 (성공 확률 계산 보조 데이터)
 
-## 3. YOLO 후보 비교 (라이선스 우선)
+## 3. 라이선스 분류 기준
 
-집게 AI 와 같은 기준 — **상업화 가능 라이선스 + CPU 동작 + 적정 latency**.
+| 분류 | 라이선스 | 의미 |
+|---|---|---|
+| 🟢 **상업적 가능** | MIT / BSD / Apache-2.0 | 오픈소스 + 상업 OK (출처 표기만) |
+| 🟡 **상업적 불가능 (조건부)** | GPL-3.0 / AGPL-3.0 | 오픈소스이지만 소스공개 의무 + 동일라이선스 전파. 상업 SaaS X (Enterprise 라이선스 별도 구매 시 OK) |
+| 🟠 **비상업 라이선스** | CC BY-NC-SA / CC BY-NC | 학술/연구만, 상업 명시적 금지 |
+| 🔴 **아예 오픈소스 X** | Proprietary / SaaS | 클라우드 API, 비공개 모델 |
 
-| 모델 | 라이선스 | 상업화 | 추정 latency (CPU 4t) | 비고 |
+**우리 프로젝트 채택 기준**: 🟢 만. 🟡 는 측정 참고용. 🟠/🔴 제외.
+
+## 4. Detection 모델 전체 표
+
+| 모델 | 출처 | 라이선스 | 분류 | 비고 |
 |---|---|---|---|---|
-| YOLOv8 / v11 (Ultralytics) | AGPL-3.0 | ❌ | 30~50ms (n) | 가장 인기/쉽지만 라이선스 막힘 |
-| YOLOv5 (Ultralytics) | AGPL-3.0 / GPL-3.0 | ❌ | ~ | 동일 회사 |
-| **YOLOX** (Megvii) | **Apache-2.0** | **✅** | ~30ms (nano) | **1순위 후보** |
-| **YOLO-NAS** (Deci → NVIDIA) | Apache-2.0 | △ | ~30ms (s) | 가중치 라이선스 별도 — 확인 필요 |
-| YOLOv4 Darknet | variant | △ | ~50ms | 변종마다 다름, 신중 |
-| **RT-DETR** (Baidu) | **Apache-2.0** | **✅** | 50~100ms | Transformer, 정확도↑ but 느림 |
-| DETR (Meta) | Apache-2.0 | ✅ | 100ms+ | 너무 느림 (실시간 부적합) |
+| **YOLOX** | Megvii | Apache-2.0 | 🟢 | **1순위 후보** |
+| **YOLOv6** | Meituan | Apache-2.0 | 🟢 | 2순위 |
+| **RT-DETR** | Baidu | Apache-2.0 | 🟢 | Transformer, 정확도↑ |
+| DETR | Meta | Apache-2.0 | 🟢 | 너무 느림 |
+| DINO / Grounding DINO | IDEA Research | Apache-2.0 | 🟢 | text prompt 가능 |
+| SAM / SAM2 | Meta | Apache-2.0 | 🟢 | segmentation, 무거움 |
+| Faster R-CNN / RetinaNet | torchvision | BSD | 🟢 | 표준, YOLO보다 느림 |
+| YOLOv5 | Ultralytics | AGPL-3.0 | 🟡 | |
+| YOLOv7 | WongKinYiu | GPL-3.0 | 🟡 | |
+| YOLOv8 | Ultralytics | AGPL-3.0 | 🟡 | 측정용으로 사용함 |
+| YOLOv9 | WongKinYiu | GPL-3.0 | 🟡 | |
+| YOLOv10 | THU-MIG | AGPL-3.0 | 🟡 | |
+| YOLOv11 | Ultralytics | AGPL-3.0 | 🟡 | |
+| **YOLO26** | Ultralytics | AGPL-3.0 + Enterprise | 🟡 | 2026-01 출시, CPU 43%↑, NMS-free |
+| Google Cloud Vision | Google | Proprietary SaaS | 🔴 | 클라우드 호출 |
+| AWS Rekognition | AWS | Proprietary SaaS | 🔴 | |
+| Azure Computer Vision | MS | Proprietary SaaS | 🔴 | |
+| Clarifai / Roboflow Inference | 각 회사 | Proprietary SaaS | 🔴 | |
 
-**라이선스 함정**: Ultralytics YOLO (v5/v8/v11) 는 인기 압도적이지만 **AGPL-3.0** 이라 상업 서비스 X. 우리 프로젝트가 SSAFY 자율과제 + 오픈소스 프레임워크 지향이라 **상업 가능 라이선스 강제**.
+**Ultralytics 함정**: v5/v8/v11/v26 모두 AGPL-3.0. 인기 압도적이지만 우리 채택 X. **YOLO26 은 Enterprise 라이선스 별도 구매 시 OK** 라 회색지대 — SSAFY/스타트업 무료 사용 시 사실상 X.
+
+## 5. 측정 결과 (Ultralytics YOLO 시리즈, 🟡 측정용)
+
+GraspNet `doc/example_data/color.png` 입력, conf=0.05, warmup 후 평균.
+
+| 모델 | GPU H200 (ms) | CPU 4t (ms) | detections | params |
+|---|---|---|---|---|
+| yolov8n | 24.0 | 49.6 | 8 | 3.2M |
+| yolov8s | 24.9 | 69.4 | 5 | 11.2M |
+| yolov8m | 25.7 | 112.7 | 10 | 25.9M |
+| yolo11n | 25.7 | **46.5** | 12 | 2.6M |
+| yolo11s | 25.8 | 69.2 | 6 | 9.5M |
+| yolo26n | 26.2 | 48.2 | 11 | 2.6M |
+| yolo26s | 26.4 | 77.0 | 3 | 10.0M |
+| yolo26m | 27.2 | 118.5 | 5 | 21.9M |
+
+### 핵심 발견
+
+1. **GPU H200 24~27ms** — 모델 사이즈 차이 묻힘 (GPU가 너무 빠름 + ultralytics `predict()` 호출 오버헤드 포함)
+2. **CPU 4-thread (EC2 시뮬)**:
+   - n 사이즈 ~47ms (200ms 한계 대비 4배 마진)
+   - s 사이즈 ~70ms
+   - m 사이즈 ~115ms (마진 1.7배, 여전히 운영 가능)
+3. **YOLO26 "CPU 43% 빠름" 주장은 우리 측정에서 안 보임** (PyTorch native vs ONNX export 차이 추정). 같은 사이즈에서 v8 ≈ v11 ≈ v26.
+4. **YOLO11n** 이 가장 빠름 (CPU 46.5ms) + detection 수 가장 많음 (12). 의외의 winner. **라이선스 AGPL이라 채택 X**.
+5. **Grasp AI(20.7ms) + Detection AI(47ms) 통합 ≈ 67ms** = 15 FPS. 200ms 한계 대비 3배 마진.
+
+### 결론 (Ultralytics 기준)
+
+**latency 검증 완료**. n/s/m 사이즈 모두 EC2 운영 가능. 정확도는 도메인 fine-tune 후 의미 있음 (Grasp AI 와 동일 결론).
+
+→ 진짜 채택은 🟢 후보(YOLOX/YOLOv6) 측정 후 결정. 위 결과는 "이 latency 면 충분히 빠르다" 는 reference.
+
+raw: [detection-poc/yolo_compare.txt](detection-poc/yolo_compare.txt)
 
 ## 4. 인형 인식 정확도
 
