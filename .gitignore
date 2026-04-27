@@ -17,3 +17,6 @@ build/
 benchmark.log
 demo.log
 detection-poc/*.pt
+
+# Claude Code local config/memory
+.claude/
