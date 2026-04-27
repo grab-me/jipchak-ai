@@ -122,6 +122,13 @@ if __name__ == '__main__':
 
         with torch.no_grad():
             for idx, (x, y, didx, rot, zoom) in enumerate(test_data):
+                # DataLoader 가 metadata 를 batch tensor 로 묶음 — 함수에 넘기기 전 scalar 로 풀기
+                if torch.is_tensor(didx):
+                    didx = int(didx.item())
+                if torch.is_tensor(rot):
+                    rot = float(rot.item())
+                if torch.is_tensor(zoom):
+                    zoom = float(zoom.item())
                 xc = x.to(device)
                 yc = [yi.to(device) for yi in y]
                 lossd = net.compute_loss(xc, yc)
