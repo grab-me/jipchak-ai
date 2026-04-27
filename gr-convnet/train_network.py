@@ -78,6 +78,12 @@ def parse_args():
     parser.add_argument('--random-seed', type=int, default=123,
                         help='Random seed for numpy')
 
+    # Fine-tuning
+    parser.add_argument('--pretrained', type=str, default='',
+                        help='Path to pretrained network (full pickle from torch.save). '
+                             'When set, network/dropout/channel-size args are ignored — '
+                             'the loaded model is fine-tuned as is.')
+
     args = parser.parse_args()
     return args
 
@@ -286,13 +292,18 @@ def run():
     # Load the network
     logging.info('Loading Network...')
     input_channels = 1 * args.use_depth + 3 * args.use_rgb
-    network = get_network(args.network)
-    net = network(
-        input_channels=input_channels,
-        dropout=args.use_dropout,
-        prob=args.dropout_prob,
-        channel_size=args.channel_size
-    )
+    if args.pretrained:
+        # Fine-tune 모드: 사전학습 가중치(full pickle) 로드. 아키텍처 파라미터 무시.
+        logging.info('Loading pretrained network from {}'.format(args.pretrained))
+        net = torch.load(args.pretrained, map_location=device)
+    else:
+        network = get_network(args.network)
+        net = network(
+            input_channels=input_channels,
+            dropout=args.use_dropout,
+            prob=args.dropout_prob,
+            channel_size=args.channel_size
+        )
 
     net = net.to(device)
     logging.info('Done')
