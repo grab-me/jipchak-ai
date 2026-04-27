@@ -30,7 +30,7 @@ sys.path.insert(0, ROOT)
 
 from inference.post_process import post_process_output  # noqa: E402
 from utils.data.camera_data import CameraData  # noqa: E402
-from utils.dataset_processing.grasp import detect_grasps  # noqa: E402
+from grasp_to_3dof import grasp_to_3dof  # noqa: E402
 
 
 CHECKPOINTS = [
@@ -40,55 +40,54 @@ CHECKPOINTS = [
 OUTPUT_SIZE = 224
 
 
-def run_one(net, device, rgb, depth, n_grasps):
+def run_one(net, device, rgb, depth_raw_2d, depth_m_2d, n_grasps):
+    """모델 입력엔 raw depth (학습 분포 유지), 후처리 z 추출엔 m 단위."""
     H, W = rgb.shape[:2]
     cam = CameraData(width=W, height=H, output_size=OUTPUT_SIZE,
                      include_depth=True, include_rgb=True)
-    x, _, _ = cam.get_data(rgb=rgb, depth=depth)
+    depth_in = depth_raw_2d[..., None]  # (H, W, 1) raw — CameraData 내부에서 자체 정규화
+    x, _, _ = cam.get_data(rgb=rgb, depth=depth_in)
     rgb_crop = cam.get_rgb(rgb, norm=False)
 
     x = x.to(device)
     with torch.no_grad():
         pred = net.predict(x)
-        q_img, ang_img, width_img = post_process_output(
+        q_img, _, _ = post_process_output(
             pred["pos"], pred["cos"], pred["sin"], pred["width"]
         )
-    grasps = detect_grasps(q_img, ang_img, width_img=width_img, no_grasps=n_grasps)
+
+    grasps = grasp_to_3dof(
+        q_img, depth_m_2d,
+        original_size=(W, H),
+        crop_size=OUTPUT_SIZE,
+        top_k=n_grasps,
+    )
     return rgb_crop, q_img, grasps
 
 
-def plot_panel(ax, rgb_crop, q_img, grasps, depth_m, label):
+def plot_panel(ax, rgb_crop, q_img, grasps, label):
     """점 + 좌표 라벨만. antipodal 박스/각도 무시 (3-finger 관점)."""
     ax.imshow(rgb_crop)
     ax.imshow(q_img, cmap="jet", alpha=0.40, vmin=0, vmax=1)
 
-    H, W = depth_m.shape
-    top = (H - OUTPUT_SIZE) // 2
-    left = (W - OUTPUT_SIZE) // 2
-
     print(f"\n  [{label}] candidates (3-finger view):")
     for i, g in enumerate(grasps):
-        cy, cx = g.center  # crop 좌표
-        q = float(q_img[cy, cx])
+        cx_crop = g.metadata["crop_x"]
+        cy_crop = g.metadata["crop_y"]
+        z_str = f"z={g.z:.3f}m" if g.z is not None else "z=N/A"
 
-        # 원본 이미지 좌표
-        orig_y = int(cy + top)
-        orig_x = int(cx + left)
-        z = float(depth_m[orig_y, orig_x]) if 0 <= orig_y < H and 0 <= orig_x < W else 0.0
-        z_str = f"z={z:.3f}m" if z > 0 else "z=N/A"
+        print(f"    #{i}  pixel=({int(g.x):4d},{int(g.y):4d})  "
+              f"{z_str}  q={g.score:.3f}")
 
-        print(f"    #{i}  pixel=({orig_x:4d},{orig_y:4d})  {z_str}  q={q:.3f}")
-
-        # 점 (Q 비례 크기)
-        msize = 8 + q * 14  # 8~22
-        ax.plot(cx, cy, "o",
+        msize = 8 + g.score * 14  # 8~22
+        ax.plot(cx_crop, cy_crop, "o",
                 markersize=msize,
-                markerfacecolor=plt.cm.jet(q),
+                markerfacecolor=plt.cm.jet(g.score),
                 markeredgecolor="white",
                 markeredgewidth=2,
                 alpha=0.95)
-        ax.text(cx + 9, cy + 4,
-                f"#{i} q={q:.2f}\n{z_str}",
+        ax.text(cx_crop + 9, cy_crop + 4,
+                f"#{i} q={g.score:.2f}\n{z_str}",
                 color="white", fontsize=9,
                 bbox=dict(boxstyle="round,pad=0.3",
                           facecolor="black", alpha=0.75))
@@ -111,13 +110,14 @@ def main() -> None:
     device = torch.device(args.device)
 
     rgb = np.array(Image.open(args.rgb_path))
-    depth_raw = np.expand_dims(np.array(Image.open(args.depth_path)), axis=2)
+    depth_raw_2d = np.array(Image.open(args.depth_path))  # (H, W) 16-bit raw
 
-    # depth -> meters 변환 (GraspNet meta.mat 의 factor_depth 사용)
+    # depth -> meters (GraspNet meta.mat factor_depth)
     meta = scio.loadmat(args.meta_path)
     factor_depth = float(meta["factor_depth"].squeeze())
-    depth_m = depth_raw[..., 0].astype(np.float32) / factor_depth
-    print(f"input rgb: {rgb.shape}  depth: {depth_raw.shape}  factor_depth={factor_depth}")
+    depth_m_2d = depth_raw_2d.astype(np.float32) / factor_depth
+    print(f"input rgb: {rgb.shape}  depth: {depth_raw_2d.shape}  "
+          f"factor_depth={factor_depth}")
 
     fig, axes = plt.subplots(1, 2, figsize=(16, 8))
 
@@ -125,9 +125,9 @@ def main() -> None:
         net = torch.load(ckpt, map_location=device)
         net.eval()
         rgb_crop, q_img, grasps = run_one(
-            net, device, rgb, depth_raw, args.n_grasps
+            net, device, rgb, depth_raw_2d, depth_m_2d, args.n_grasps
         )
-        plot_panel(ax, rgb_crop, q_img, grasps, depth_m, label)
+        plot_panel(ax, rgb_crop, q_img, grasps, label)
         del net
         if device.type == "cuda":
             torch.cuda.empty_cache()
