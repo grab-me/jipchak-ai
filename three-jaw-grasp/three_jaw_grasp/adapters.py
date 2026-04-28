@@ -3,7 +3,7 @@ from typing import List, Any
 import math
 import numpy as np
 from .candidate import GraspCandidate
-
+from .factory import AdapterFactory
 
 class BaseGraspAdapter(ABC):
     """
@@ -24,6 +24,7 @@ class BaseGraspAdapter(ABC):
         pass
 
 
+@AdapterFactory.register("graspnet")
 class GraspGroupAdapter(BaseGraspAdapter):
     """
     GraspGroup 계열 (예: graspnet-baseline) 어댑터.
@@ -52,6 +53,7 @@ class GraspGroupAdapter(BaseGraspAdapter):
         return candidates
 
 
+@AdapterFactory.register("grconvnet")
 class RectGraspAdapter(BaseGraspAdapter):
     """
     Rectangle Grasp 계열 (robotic-grasping-cornell / GR-ConvNet 변형) 어댑터.
@@ -142,6 +144,7 @@ class RectGraspAdapter(BaseGraspAdapter):
         )]
 
 
+@AdapterFactory.register("anygrasp")
 class PoseArrayAdapter(BaseGraspAdapter):
     """
     6DoF Pose Array 계열 (예: AnyGrasp) 어댑터.
@@ -193,3 +196,28 @@ class PoseArrayAdapter(BaseGraspAdapter):
             return float(math.atan2(r[1][0], r[0][0]))
         except (IndexError, TypeError):
             return 0.0
+
+# ─── YOLO 객체 인식 기반 어댑터 ──────────────────────────────────
+@AdapterFactory.register("yolo")
+class YoloGraspAdapter(BaseGraspAdapter):
+    """
+    YOLO 기반 최적 파지 박스를 파싱하는 어댑터.
+    (현재 Mock 객체용으로 Cornell 데이터셋의 8-point 어노테이션 리스트를 받습니다)
+    """
+    def adapt(self, raw_output: list) -> List[GraspCandidate]:
+        candidates = []
+        for pts_8 in raw_output:
+            pts = np.array(pts_8).reshape(4, 2)
+            cx, cy = pts.mean(axis=0)
+            width = np.linalg.norm(pts[0] - pts[3])
+            
+            dy = pts[1][1] - pts[0][1]
+            dx = pts[1][0] - pts[0][0]
+            angle = math.atan2(dy, dx)
+            
+            candidates.append(GraspCandidate(
+                center_x=float(cx), center_y=float(cy), center_z=0.30, 
+                width=float(width), angle=float(angle), original_score=1.0, 
+                raw={'pts': pts}
+            ))
+        return candidates

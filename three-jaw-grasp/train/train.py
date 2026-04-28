@@ -1,56 +1,41 @@
-import torch
-import torch.nn as nn
-import torch.optim as optim
-from torch.utils.data import DataLoader
-import numpy as np
-import os
+import argparse
 import sys
+import os
 
 # 프로젝트 루트 경로 추가
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from three_jaw_grasp.evaluator import GraspScoreMLP
-from dataset import GraspDataset
+from three_jaw_grasp.factory import TrainerFactory
 
-def train(
-    data_path: str,
-    output_path: str,
-    epochs: int = 50,
-    batch_size: int = 32,
-    lr: float = 0.001
-):
-    # 데이터 로드 (npz 포맷 가정)
-    data = np.load(data_path)
-    X = data['features']
-    y = data['labels']
+# 핵심 파이프라인 학습기 로드
+import train.train_mlp
+
+def main():
+    parser = argparse.ArgumentParser(description="Three-Jaw Grasp 통합 학습 엔트리포인트")
+    parser.add_argument('--model', type=str, default='mlp', help='학습할 모델 종류 (mlp, yolo 등)')
+    parser.add_argument('--data_path', type=str, required=True, help='학습 데이터 경로')
+    parser.add_argument('--output_path', type=str, required=True, help='가중치 저장 경로')
+    parser.add_argument('--epochs', type=int, default=50, help='에폭 수')
+    parser.add_argument('--batch_size', type=int, default=32, help='배치 사이즈')
+    parser.add_argument('--lr', type=float, default=0.001, help='학습률')
     
-    dataset = GraspDataset(X, y)
-    dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
+    args = parser.parse_args()
     
-    model = GraspScoreMLP(input_dim=X.shape[1])
-    criterion = nn.BCELoss()
-    optimizer = optim.Adam(model.parameters(), lr=lr)
-    
-    model.train()
-    for epoch in range(epochs):
-        epoch_loss = 0
-        for batch_X, batch_y in dataloader:
-            optimizer.zero_grad()
-            outputs = model(batch_X)
-            loss = criterion(outputs, batch_y)
-            loss.backward()
-            optimizer.step()
-            epoch_loss += loss.item()
-        
-        if (epoch + 1) % 10 == 0:
-            print(f"Epoch [{epoch+1}/{epochs}], Loss: {epoch_loss/len(dataloader):.4f}")
-            
-    # 가중치 저장
-    os.makedirs(os.path.dirname(output_path), exist_ok=True)
-    torch.save(model.state_dict(), output_path)
-    print(f"Training complete. Weights saved to {output_path}")
+    try:
+        # Factory에서 문자열 이름으로 학습 로직(함수)을 가져옵니다.
+        train_func = TrainerFactory.get(args.model)
+    except KeyError as e:
+        print(f"[오류] {e}")
+        return
+
+    # 가져온 학습 함수에 인자를 전달하여 실행합니다.
+    train_func(
+        data_path=args.data_path,
+        output_path=args.output_path,
+        epochs=args.epochs,
+        batch_size=args.batch_size,
+        lr=args.lr
+    )
 
 if __name__ == "__main__":
-    # 사용 예시:
-    # train("data/processed_features.npz", "weights/three_jaw_mlp.pth")
-    print("Train script initialized. Please provide data_path to start training.")
+    main()

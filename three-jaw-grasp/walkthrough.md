@@ -11,100 +11,67 @@
 
 ---
 
-## 구현된 파일 구조
+## 구현된 파일 구조 (리팩토링 후)
 
 ```
 three-jaw-grasp/
-├── three_jaw_grasp/
-│   ├── __init__.py          # 공개 API 정의
+├── external_models/         # [NEW] 외부 모델 플러그인 폴더
+│   ├── grconvnet/           # GR-ConvNet 전용 모델 플러그인
+│   └── graspnet/            # GraspNet 전용 모델 플러그인
+├── three_jaw_grasp/         # 코어 파이프라인 (수정 불필요)
+│   ├── factory.py           # [NEW] 동적 팩토리 레지스트리
+│   ├── pipeline.py          # 팩토리 기반 전체 흐름 제어
+│   ├── adapters.py          # 모델 포맷 변환기
 │   ├── candidate.py         # GraspCandidate 표준 포맷
-│   ├── adapters.py          # 모델 포맷 변환기 (3종)
-│   ├── feature_extractor.py # 평가용 특징 추출 (15차원)
-│   ├── evaluator.py         # Rule-based / MLP 평가기
-│   └── pipeline.py          # 전체 흐름 제어
+│   ├── feature_extractor.py # 평가용 특징 추출
+│   └── evaluator.py         # Rule-based / MLP 평가기
 ├── train/
-│   ├── collect_data.py      # 학습 데이터 수집
-│   ├── dataset.py           # PyTorch 데이터셋
-│   └── train.py             # MLP 학습 스크립트
-├── config/
-│   └── gripper_spec.yaml    # 집게 스펙 & 평가 가중치
+│   ├── train_mlp.py         # 핵심 평가망(MLP) 학습 로직
+│   └── train.py             # [리팩토링] 학습 엔트리포인트 스크립트
 ├── examples/
-│   └── graspgroup_format.py # 동작 예시
-├── INTERFACE_CONTRACT.md    # 인터페이스 규약 (핵심 문서)
-├── walkthrough.md           # 이 파일
-└── requirements.txt
+│   └── run_pipeline.py      # 통합 시각화/추론 실행 스크립트
+├── config/
+│   └── gripper_spec.yaml
+├── README.md                # 외부 연동 가이드
+├── REFACTORING_REPORT.md    # 팩토리 패턴 도입 보고서
+└── INTERFACE_CONTRACT.md
 ```
 
 ---
 
-## 주요 구현 사항
+## 주요 구현 사항 (Dynamic Factory Pattern)
 
-### 1. 핵심 모듈 (`three_jaw_grasp/`)
+기존 파이프라인의 강한 결합도를 해소하고 완벽한 플러그 앤 플레이(Plug & Play)를 지원하기 위해 다음과 같은 변경사항을 적용했습니다.
 
-- **`candidate.py`**: 어떤 외부 모델의 출력도 수용하는 표준 `GraspCandidate` 데이터 포맷.
-- **`adapters.py`**: 모델별 고유 출력 포맷을 `GraspCandidate`로 변환하는 3가지 기본 어댑터.
-  - `GraspGroupAdapter`: GraspNet 계열
-  - `RectGraspAdapter`: GR-ConvNet 계열
-  - `PoseArrayAdapter`: AnyGrasp 계열
-- **`feature_extractor.py`**: 파지 후보의 기하학적 정보 + Depth 패치 정보로 15차원 특징 벡터 추출.  
-  학습과 추론에서 동일하게 사용되어 입력 불일치 문제를 방지.
-- **`evaluator.py`**: 두 가지 평가 모드 지원.
-  - **Rule-based**: 파지 폭, 신뢰도, 높이, 수직 안정성, 3발 120° 대칭 적합성 가중합
-  - **MLP-based**: 학습된 신경망으로 파지 성공 확률 예측
-- **`pipeline.py`**: 외부 모델 추론 → 어댑터 변환 → 평가 → 최적 파지 반환의 전체 흐름 조율.
+### 1. `factory.py` (핵심 코어)
+- `ModelFactory`, `AdapterFactory`, `TrainerFactory` 3개의 전역 레지스트리 도입.
+- 외부 플러그인 스크립트에서 데코레이터(`@ModelFactory.register(...)`)를 사용하여 딕셔너리에 객체를 동적으로 등록.
 
-### 2. 학습 파이프라인 (`train/`)
+### 2. 코어 파이프라인 (`three_jaw_grasp/`)
+- 기존에 어댑터별로 하드코딩되었던 의존성을 팩토리 레지스트리를 통해 분리.
+- 어댑터, 파이프라인 코어는 외부 모델이 어떻게 구현되어 있는지 모른 채 표준 `GraspCandidate` 인터페이스만으로 통신.
 
-- **`dataset.py`**: PyTorch `Dataset` 기반 학습 데이터 로더.
-- **`train.py`**: Binary Cross-Entropy 기반 MLP 학습, 가중치 `.pth` 저장.
-- **`collect_data.py`**: 실험/시뮬레이션 결과를 특징 벡터로 변환하여 `npz` 저장.
+### 3. 외부 모델 폴더 (`external_models/`)
+- 사용자(연구원 등)가 자신만의 파지 추론 스크립트를 작성하는 독립 공간 보장.
+- `grconvnet`, `graspnet` 모듈 예시 플러그인 구현. (객체 인식은 코어 파이프라인의 YOLO 26 디텍터가 사전 수행)
 
-### 3. 설정 시스템 (`config/`)
-
-- **`gripper_spec.yaml`**: 집게 물리 스펙(min/max/ideal 폭, 충돌 임계값)과 평가 가중치를 코드 수정 없이 조정 가능.
+### 4. 통합 실행 환경 (`run_pipeline.py` & `train.py`)
+- 모든 조건 분기문(`if model == ...`) 제거.
+- `ModelFactory.create(args.model)` 한 줄로 파이프라인이 자동 조립되도록 설계.
 
 ---
 
-## 동작 테스트 결과
+## 동작 테스트 가이드
 
-`examples/graspgroup_format.py` 실행 결과:
-
+### 외부 모델(YOLO) 기반 통합 추론 및 시각화 테스트
 ```bash
---- Best Grasp for Three-Jaw Gripper ---
-Center: (100, 100, 0.05)   ← 집게 이동 목표 좌표
-Width:  0.04               ← 집게 벌림 폭 (4cm)
-Angle:  0.0                ← 집게 회전 각도 (라디안)
-Original Score: 0.9        ← 원본 탐지 모델 신뢰도
+python examples/run_pipeline.py --model yolo --max 1
 ```
 
-Rule-based 평가기가 바닥 충돌 위험(center_z < 0.02m)이 있는 후보를 올바르게 제외하고,  
-신뢰도와 집게 폭 적합성이 높은 후보를 선택하는 것을 확인.
+### 외부 학습 파이프라인(MLP) 테스트
+```bash
+python train/train.py --model mlp --data_path dataset/01/processed_features.npz --output_path weights/three_jaw_mlp.pth
+```
 
----
-
-## 인터페이스 규약 검토 결과
-
-| 항목 | 상태 | 비고 |
-|---|---|---|
-| 사용자 모델 인터페이스 규약 | ✅ 완료 | `predict(rgb, depth)` 단일 규약 |
-| 어댑터 설명 및 예시 | ✅ 완료 | 3종 기본 + 커스텀 가이드 |
-| GraspCandidate 좌표계 주의사항 | ✅ 완료 (수정됨) | 어댑터 구현 시 단위 명시 권장 추가 |
-| 파생 파이프라인 코드 오류 | ✅ 수정됨 | `_get_candidates` 미구현 메서드 제거 |
-| 산업현장 확장 예시 | ✅ 추가됨 | 크레인 파이프라인 예시 추가 |
-| 스테레오 비전(일반 카메라 2대) | ✅ 추가됨 | OpenCV 기반 구현 절차 및 가이드 |
-| 프로젝트 맥락(인형뽑기) | ✅ 추가됨 | Section 1-1에 명시 |
-
----
-
-## 향후 할 일
-
-### 오늘 (베이스 파이프라인 마무리)
-- [ ] `evaluator.py`의 `_stability` 메서드 실제 수직 접근 각도 로직 구현
-- [ ] `adapters.py` 각 어댑터 클래스에 docstring으로 좌표계/단위 명시
-- [ ] 유닛 테스트 코드 작성 (Adapter → Extractor → Evaluator 데이터 흐름 검증)
-
-### 다음 단계
-- [ ] 스테레오 카메라 캘리브레이션 코드 작성 (`utils/stereo_calibration.py`)
-- [ ] 실시간 카메라 스트림 연동 (`utils/camera_stream.py`)
-- [ ] 실제 집게 스펙(폭, 높이 임계값)을 `config/gripper_spec.yaml`에 측정 후 입력
-- [ ] 인형뽑기 기계 내부에서 테스트 이미지 수집 → MLP 학습용 데이터 구축
+> [!TIP]
+> 이제 새로운 모델을 도입할 때는 기존 코드를 수정할 필요 없이, `external_models/` 안에 플러그인 코드 하나만 작성하고 `@Factory.register`를 붙여주면 끝입니다!

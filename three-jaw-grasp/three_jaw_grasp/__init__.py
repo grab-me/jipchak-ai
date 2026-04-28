@@ -3,5 +3,6 @@ from .adapters import BaseGraspAdapter, GraspGroupAdapter, RectGraspAdapter, Pos
 from .feature_extractor import FeatureExtractor
 from .evaluator import ThreeJawEvaluator
 from .pipeline import GraspPipeline
+from .factory import Registry, ModelFactory, AdapterFactory, TrainerFactory
 
 __version__ = "0.1.0"
