@@ -3,7 +3,7 @@ from typing import List, Any
 import math
 import numpy as np
 from .candidate import GraspCandidate
-
+from .factory import AdapterFactory
 
 class BaseGraspAdapter(ABC):
     """
@@ -24,6 +24,7 @@ class BaseGraspAdapter(ABC):
         pass
 
 
+@AdapterFactory.register("graspnet")
 class GraspGroupAdapter(BaseGraspAdapter):
     """
     GraspGroup 계열 (예: graspnet-baseline) 어댑터.
@@ -52,6 +53,7 @@ class GraspGroupAdapter(BaseGraspAdapter):
         return candidates
 
 
+@AdapterFactory.register("grconvnet")
 class RectGraspAdapter(BaseGraspAdapter):
     """
     Rectangle Grasp 계열 (robotic-grasping-cornell / GR-ConvNet 변형) 어댑터.
@@ -142,6 +144,7 @@ class RectGraspAdapter(BaseGraspAdapter):
         )]
 
 
+@AdapterFactory.register("anygrasp")
 class PoseArrayAdapter(BaseGraspAdapter):
     """
     6DoF Pose Array 계열 (예: AnyGrasp) 어댑터.
@@ -195,6 +198,7 @@ class PoseArrayAdapter(BaseGraspAdapter):
             return 0.0
 
 # ─── YOLO 객체 인식 기반 어댑터 ──────────────────────────────────
+@AdapterFactory.register("yolo")
 class YoloGraspAdapter(BaseGraspAdapter):
     """
     YOLO 기반 최적 파지 박스를 파싱하는 어댑터.

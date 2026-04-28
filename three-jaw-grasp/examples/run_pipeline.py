@@ -34,48 +34,71 @@ if os.path.exists(GRCONVNET_ROOT):
 from examples.wrappers import GRConvNetWrapper, GraspNetMockWrapper, YoloMockModel
 
 
+from three_jaw_grasp.factory import ModelFactory, AdapterFactory
+from three_jaw_grasp.detector import YoloMockDetector
+
+# 외부 플러그인 로드 (실제 프로덕션 환경에서는 사용자가 작성한 스크립트를 import 하는 방식과 동일)
+import external_models.grconvnet.plugin
+import external_models.graspnet.plugin
+
 def main():
     parser = argparse.ArgumentParser(description="Three-Jaw Grasp Pipeline (다중 모델 통합 모드)")
-    parser.add_argument('--model', type=str, choices=['grconvnet', 'graspnet', 'yolo'], default='yolo',
-                        help="평가할 모델 종류 선택")
+    # 등록된 모델 키값을 choices로 동적 할당할 수도 있으나 직관성을 위해 유지
+    parser.add_argument('--model', type=str, default='grconvnet',
+                        help="평가할 모델 종류 선택 (grconvnet, graspnet 등)")
+    parser.add_argument('--dataset', type=str, default='01', 
+                        help="테스트할 데이터셋 폴더명 (예: 01, 02 등)")
     parser.add_argument('--max', type=int, default=5, help='처리할 이미지 수')
     parser.add_argument('--save', type=str, default=None, help='저장 폴더 (예: examples/output)')
     args = parser.parse_args()
 
-    dataset_dir = os.path.join(PIPELINE_ROOT, 'dataset', '01')
+    dataset_dir = os.path.join(PIPELINE_ROOT, 'dataset', args.dataset)
     if not os.path.exists(dataset_dir):
         print(f"[오류] 데이터셋 폴더 부재: {dataset_dir}")
         return
 
-    # 1. 모델과 어댑터, 렌더링 설정
-    is_3d = False
-    intrinsics = None
+    # 1. 모델과 어댑터 동적 생성 (Factory Pattern)
+    try:
+        # 모델별 추가 인자(kwargs) 처리는 팩토리를 통해 유연하게 전달 가능
+        if args.model == 'grconvnet':
+            ckpt_path = os.path.join(GRCONVNET_ROOT, 'models', 'model_49.ckpt')
+            model = ModelFactory.create(args.model, checkpoint_path=ckpt_path if os.path.exists(ckpt_path) else None)
+        else:
+            model = ModelFactory.create(args.model)
+            
+        adapter = AdapterFactory.create(args.model)
+    except KeyError as e:
+        print(f"[오류] {e}")
+        return
 
-    if args.model == 'grconvnet':
-        # GR-ConvNet 가중치가 있다면 로드, 없으면 dummy
-        ckpt_path = os.path.join(GRCONVNET_ROOT, 'models', 'model_49.ckpt')
-        model = GRConvNetWrapper(checkpoint_path=ckpt_path if os.path.exists(ckpt_path) else None)
-        adapter = RectGraspAdapter()
+    # 렌더링 설정
+    is_3d = getattr(model, 'is_3d', args.model == 'graspnet')
+    intrinsics = getattr(model, 'intrinsics', None)
 
-    elif args.model == 'graspnet':
-        model = GraspNetMockWrapper()
-        adapter = GraspGroupAdapter()
-        is_3d = True
-        intrinsics = model.intrinsics
-
-    elif args.model == 'yolo':
-        model = YoloMockModel(data_dir=dataset_dir)
-        adapter = YoloGraspAdapter()
-
-    # 2. 공통 파이프라인(Evaluator) 조립
+    # 2. 공통 파이프라인 조립 (YOLO 디텍터 주입)
     evaluator = ThreeJawEvaluator(config_path=os.path.join(PIPELINE_ROOT, 'config', 'gripper_spec.yaml'))
-    pipeline  = GraspPipeline(model=model, adapter=adapter, evaluator=evaluator)
+    detector = YoloMockDetector(data_dir=dataset_dir)
+    pipeline  = GraspPipeline(model=model, adapter=adapter, evaluator=evaluator, detector=detector, is_3d=is_3d)
 
     if args.save:
-        timestamp_dir = os.path.join(args.save, f"{args.model}_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}")
-        os.makedirs(timestamp_dir, exist_ok=True)
-        print(f"[저장 안내] {timestamp_dir} 에 저장됩니다.")
-        args.save = timestamp_dir
+        date_str = datetime.datetime.now().strftime('%Y%m%d')
+        base_dir = args.save
+        
+        # 모델명_날짜_넘버 패턴 찾기
+        existing_dirs = glob.glob(os.path.join(base_dir, f"{args.model}_{date_str}_*"))
+        max_num = 0
+        for d in existing_dirs:
+            try:
+                num_str = os.path.basename(d).split('_')[-1]
+                max_num = max(max_num, int(num_str))
+            except ValueError:
+                continue
+                
+        new_num = max_num + 1
+        save_dir = os.path.join(base_dir, f"{args.model}_{date_str}_{new_num}")
+        os.makedirs(save_dir, exist_ok=True)
+        print(f"[저장 안내] {save_dir} 에 저장됩니다.")
+        args.save = save_dir
 
     # 3. 데이터셋 순환 실행
     image_paths = sorted(glob.glob(os.path.join(dataset_dir, '*r.png')))
@@ -89,19 +112,13 @@ def main():
         h, w = rgb.shape[:2]
         depth = np.full((h, w), 0.30, dtype=np.float32)
 
-        # 모델별 필요 인자에 맞춰 추론. (YOLO는 정답 모사를 위해 파일 prefix가 필요함)
-        if args.model == 'yolo':
-            raw_output = model.predict(rgb, depth, filename_prefix=prefix)
-        else:
-            raw_output = model.predict(rgb, depth)
-
-        # 공통 어댑터 및 평가
-        candidates = adapter.adapt(raw_output)
-        if not candidates:
-            print(f"[{i+1}] {fname} -> [건너뜀] 추출된 파지 후보가 없음")
+        # 캡슐화된 파이프라인 메서드 실행 (YOLO Crop -> 추론 -> Uncrop -> 평가)
+        try:
+            best = pipeline.predict_best(rgb, depth, filename_prefix=prefix)
+        except ValueError as e:
+            print(f"[{i+1}] {fname} -> [건너뜀] {e}")
             continue
             
-        best = evaluator.select_best(candidates, depth)
         detail = evaluator.score_detail(best)
         
         print(f"[{i+1}] {fname} -> Total Score: {detail['total']:.3f} | Best Center: (X={best.center_x:.2f}, Y={best.center_y:.2f})")
@@ -116,8 +133,8 @@ def main():
             out_path = os.path.join(args.save, f"{args.model}_{fname}")
             plt.savefig(out_path, dpi=100, bbox_inches='tight')
         
-        # plt.show() # 서버 환경이나 배치 테스트 시에는 끄는 것을 권장합니다.
-        plt.close()
+        plt.show()
+        plt.close() 
 
 if __name__ == '__main__':
     main()
