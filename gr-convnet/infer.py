@@ -65,7 +65,7 @@ class GraspInfer:
         self.device = torch.device(device)
         self.output_size = output_size
         self.checkpoint = checkpoint
-        self.net = torch.load(checkpoint, map_location=self.device)
+        self.net = torch.load(checkpoint, map_location=self.device, weights_only=False)
         self.net.eval()
 
     def predict(
