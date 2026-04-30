@@ -34,6 +34,9 @@ class GraspScoreMLP(nn.Module):
         return self.net(x)
 
 
+from .factory import EvaluatorFactory
+
+@EvaluatorFactory.register("default")
 class ThreeJawEvaluator:
     """
     3발 집게에 최적화된 파지 후보를 선택하는 평가기.
@@ -212,6 +215,36 @@ class ThreeJawEvaluator:
         """
         return float(min(1.0, max(0.0, g.original_score)))
 
+    def _mask_fitness(self, g: GraspCandidate) -> float:
+        """
+        마스크 기반 집게발 충돌 검사.
+        3개의 집게발이 떨어질 예상 좌표를 계산하여 마스크 내부에 있는지 확인.
+        충돌 개수에 따라 페널티(Multiplier)를 반환.
+        """
+        if getattr(g, 'mask', None) is None:
+            return 1.0
+            
+        cx, cy = g.center_x, g.center_y
+        r = g.width / 2.0
+        angle = g.angle
+        
+        collisions = 0
+        h, w = g.mask.shape
+        for i in range(3):
+            theta = angle + i * (2 * math.pi / 3.0)
+            jx = int(round(cx + r * math.cos(theta)))
+            jy = int(round(cy + r * math.sin(theta)))
+            
+            if 0 <= jx < w and 0 <= jy < h:
+                if g.mask[jy, jx] > 0:
+                    collisions += 1
+                    
+        # 충돌 시 페널티 배수 적용 (0개: 1.0, 1개: 0.7, 2개: 0.4, 3개: 0.1)
+        if collisions == 0: return 1.0
+        elif collisions == 1: return 0.7
+        elif collisions == 2: return 0.4
+        else: return 0.1
+
     # ------------------------------------------------------------------
     # 내부 구현
     # ------------------------------------------------------------------
@@ -230,7 +263,8 @@ class ThreeJawEvaluator:
             w['stability'] * self._stability(g)        +
             w['symmetry']  * self._symmetry(g)
         )
-        return float(score)
+        score *= self._mask_fitness(g)
+        return float(min(0.90, score))
 
     def score_detail(self, g: GraspCandidate, depth: Optional[np.ndarray] = None) -> dict:
         """
@@ -254,15 +288,21 @@ class ThreeJawEvaluator:
         rh = self._height_fitness(g)
         rb = self._stability(g)
         ry = self._symmetry(g)
-        total = (w['width']*rw + w['score']*rs + w['height']*rh
+        rm = self._mask_fitness(g)
+        
+        base_total = (w['width']*rw + w['score']*rs + w['height']*rh
                  + w['stability']*rb + w['symmetry']*ry)
+        total = base_total * rm
+        total = min(0.90, total)
+        
         return {
             'width'    : {'raw': rw, 'weighted': w['width']     * rw},
             'score'    : {'raw': rs, 'weighted': w['score']     * rs},
             'height'   : {'raw': rh, 'weighted': w['height']    * rh},
             'stability': {'raw': rb, 'weighted': w['stability'] * rb},
             'symmetry' : {'raw': ry, 'weighted': w['symmetry']  * ry},
-            'total'    : total,
+            'mask'     : {'raw': rm, 'weighted': rm},
+            'total'    : float(total),
         }
 
     def _mlp_scores(
@@ -275,6 +315,12 @@ class ThreeJawEvaluator:
         with torch.no_grad():
             tensor = torch.from_numpy(features)
             scores = self.model(tensor).squeeze().numpy()
+            
+        # MLP 기반에서도 90% 상한 및 마스크 충돌 페널티 적용
+        mask_multipliers = np.array([self._mask_fitness(c) for c in candidates])
+        scores = scores * mask_multipliers
+        scores = np.clip(scores, 0.0, 0.90)
+        
         # 후보 1개일 때 squeeze()가 0-d 텐서를 반환하므로 1D 보장
         return np.atleast_1d(scores)
 

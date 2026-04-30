@@ -55,9 +55,19 @@ class GraspPipeline:
         # 3D 모델(GraspNet)은 point cloud를 다루기 때문에 모델 내부에서 crop_box를 기반으로 
         # 원본 좌표계의 3D(X,Y,Z) 값을 직접 계산하도록 책임을 넘깁니다.
         if self.detector and (xmin > 0 or ymin > 0) and not self.is_3d:
+            orig_h, orig_w = rgb.shape[:2]
             for c in candidates:
                 c.center_x += xmin
                 c.center_y += ymin
+                
+                # 마스크가 존재할 경우, 원본 이미지 해상도로 패딩(복원)
+                if getattr(c, 'mask', None) is not None:
+                    padded_mask = np.zeros((orig_h, orig_w), dtype=c.mask.dtype)
+                    crop_h, crop_w = c.mask.shape
+                    y_end = min(ymin + crop_h, orig_h)
+                    x_end = min(xmin + crop_w, orig_w)
+                    padded_mask[ymin:y_end, xmin:x_end] = c.mask[:(y_end-ymin), :(x_end-xmin)]
+                    c.mask = padded_mask
 
         # 4. 최적 파지 선택
         best_grasp = self.evaluator.select_best(candidates, depth=depth)
