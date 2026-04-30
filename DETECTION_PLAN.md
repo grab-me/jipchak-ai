@@ -158,7 +158,24 @@ raw: [detection-poc/tv_compare.txt](detection-poc/tv_compare.txt)
 - YOLOv6 (Apache) 도 시간 투자 가치 낮음
 - 단 fine-tune 시 비교 가치는 남음 (도메인 정확도 더 높을 가능성)
 
-## 8. 후속 작업
+## 8. 통합 wrapper 검증 (`pipeline.py`)
+
+`detection/detect.py` + `gr-convnet/infer.py` 합친 `pipeline.GraspPipeline` 동작 검증 완료. example_data 실측:
+
+| | det_ms | grasp_ms | total_ms | n_det | n_grasps |
+|---|---|---|---|---|---|
+| GPU | 38.6 | 6.0 | **44.6** | 20 | 5 |
+| CPU 4t | 97.8 | 11.9 | **109.7** | 20 | 5 |
+
+→ EC2 통합 9 FPS, 200ms 한계 1.8배 마진. 운영 가능 확정.
+
+추정(58ms) vs 실측(110ms) 차이 = top_k 20 + conf 0.05 후처리 비용 + pipeline 오버헤드 + 메모리 경합.
+
+**의외 발견 — example_data 에서 workspace_mask 효과 없음**: SSDlite false positive `sink` bbox `[21, 8, 1280, 701]` 가 거의 전체 영역을 커버해 mask 가 사실상 무용. `--doll-only` 필터 + 인형뽑기 fine-tune 후 의미 생김.
+
+raw: pipeline.py CLI 출력
+
+## 9. 후속 작업
 
 | 우선 | 작업 | 비고 |
 |---|---|---|
@@ -166,8 +183,9 @@ raw: [detection-poc/tv_compare.txt](detection-poc/tv_compare.txt)
 | 2 | SSDlite COCO 사전학습으로 1차 인형 detect 검증 | 인형 사진 인터넷 수집으로도 가능 |
 | 3 | bbox + grasp center 동시 레이블링 도구 | 두 AI 데이터 한 번에 |
 | 4 | SSDlite fine-tune | torchvision 학습 표준 (COCO format) |
-| 5 | Grasp + Detection 통합 wrapper | bbox → workspace mask → grasp 후보 마스킹 |
-| 6 | (선택) YOLOX/YOLOv6 추가 비교 | 정확도 차이 클 경우만 |
+| 5 | ~~Grasp + Detection 통합 wrapper~~ | ✅ `pipeline.py` 완료 |
+| 6 | pipeline 운영 서버 (`pipeline_server.py`) | 메인 레포 통합용 — Grasp/Detection 합친 단일 endpoint |
+| 7 | (선택) YOLOX/YOLOv6 추가 비교 | 정확도 차이 클 경우만 |
 
 ## 4. 인형 인식 정확도
 

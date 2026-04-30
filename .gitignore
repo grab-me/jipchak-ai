@@ -20,3 +20,7 @@ detection-poc/*.pt
 
 # Claude Code local config/memory
 .claude/
+
+# Node.js (메인 레포 부산물 차단)
+package-lock.json
+node_modules/
