@@ -6,6 +6,7 @@ from PIL import Image
 import cv2
 import matplotlib.pyplot as plt
 import datetime
+import random
 
 THIS_DIR = os.path.dirname(os.path.abspath(__file__))
 PIPELINE_ROOT = os.path.dirname(THIS_DIR)
@@ -72,8 +73,15 @@ def main():
     # Detector 없이 YOLO Seg 모델 자체를 메인 모델로 사용
     pipeline = GraspPipeline(model=model, adapter=adapter, evaluator=evaluator, detector=None)
     
-    images = glob.glob(os.path.join(img_dir, '*.jpg'))
-    print(f"테스트 이미지 {len(images)}장 발견. 최대 5장만 테스트합니다.\n" + "="*50)
+    # jpg, png, jpeg 등 모든 이미지 확장자 검색
+    images = []
+    for ext in ['*.jpg', '*.png', '*.jpeg']:
+        images.extend(glob.glob(os.path.join(img_dir, ext)))
+    
+    # 랜덤하게 5장 샘플링
+    test_count = min(5, len(images))
+    images = random.sample(images, test_count)
+    print(f"테스트 이미지 총 {len(images)}장 중 랜덤하게 {test_count}장을 추출하여 테스트합니다.\n" + "="*50)
     
     base_dir = os.path.join(PIPELINE_ROOT, 'examples', 'output')
     
@@ -105,8 +113,8 @@ def main():
             detail = evaluator.score_detail(best_grasp)
             print(f"  -> 최고 파지점: Center({best_grasp.center_x:.1f}, {best_grasp.center_y:.1f}) | Score: {detail['total']:.3f} (Mask 핏: {detail['mask']['weighted']:.2f})")
             
-            # 시각화 및 저장
-            fig, ax = plt.subplots(1, 1, figsize=(7, 7))
+            # 시각화 및 저장 (v2와 동일한 10x10 사이즈로 통일)
+            fig, ax = plt.subplots(1, 1, figsize=(10, 10))
             draw_three_jaw_grasp(ax, rgb, best_grasp, detail, model_name="YOLO_Seg", is_3d=False)
             plt.title(f"Score: {detail['total']:.3f} (Mask Multiplier: {detail['mask']['weighted']:.2f})")
             
