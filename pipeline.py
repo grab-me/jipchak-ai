@@ -80,8 +80,12 @@ class GraspPipeline:
 
     def __init__(self, device: str = "cuda:0") -> None:
         self.device = device
+        print(f"  [pipeline] loading Detection (SSDlite) on {device}...", flush=True)
         self.detector = DetectInfer(device=device)
+        print("  [pipeline] Detection loaded", flush=True)
+        print(f"  [pipeline] loading Grasp (GR-ConvNet ch16) on {device}...", flush=True)
         self.grasper = GraspInfer(device=device)
+        print("  [pipeline] Grasp loaded", flush=True)
 
     def predict(
         self,
