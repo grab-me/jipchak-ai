@@ -16,5 +16,21 @@ build/
 # Logs (선택)
 benchmark.log
 demo.log
+detection-poc/*.pt
+
+# Claude Code local config/memory
+.claude/
+
+# Node.js (메인 레포 부산물 차단)
+package-lock.json
+node_modules/
+
+# Python venv (각 폴더의 가상환경)
+venv/
+*/venv/
+**/venv/
+
+# 수집한 데이터셋 (용량/개인 PC, 메인은 별도 스토리지)
+D435-test/dataset/
 gr-convnet/server.log
 gr-convnet/result.json
