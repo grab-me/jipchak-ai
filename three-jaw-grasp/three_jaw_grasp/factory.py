@@ -41,3 +41,4 @@ class Registry:
 ModelFactory = Registry("Model")
 AdapterFactory = Registry("Adapter")
 TrainerFactory = Registry("Trainer")
+EvaluatorFactory = Registry("Evaluator")

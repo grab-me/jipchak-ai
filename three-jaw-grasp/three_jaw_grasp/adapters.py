@@ -198,26 +198,120 @@ class PoseArrayAdapter(BaseGraspAdapter):
             return 0.0
 
 # ─── YOLO 객체 인식 기반 어댑터 ──────────────────────────────────
-@AdapterFactory.register("yolo")
-class YoloGraspAdapter(BaseGraspAdapter):
+@AdapterFactory.register("yolo_box")
+class YoloBoxGraspAdapter(BaseGraspAdapter):
     """
-    YOLO 기반 최적 파지 박스를 파싱하는 어댑터.
-    (현재 Mock 객체용으로 Cornell 데이터셋의 8-point 어노테이션 리스트를 받습니다)
+    YOLO Bounding Box 기반 어댑터.
+    raw_output: dict
+        - 'box': [xmin, ymin, xmax, ymax]
+        - 'score': float
     """
-    def adapt(self, raw_output: list) -> List[GraspCandidate]:
+    def adapt(self, raw_output: Any) -> List[GraspCandidate]:
         candidates = []
-        for pts_8 in raw_output:
-            pts = np.array(pts_8).reshape(4, 2)
-            cx, cy = pts.mean(axis=0)
-            width = np.linalg.norm(pts[0] - pts[3])
+        if isinstance(raw_output, list):
+            items = raw_output
+        else:
+            items = [raw_output]
             
-            dy = pts[1][1] - pts[0][1]
-            dx = pts[1][0] - pts[0][0]
-            angle = math.atan2(dy, dx)
+        for item in items:
+            if isinstance(item, list) and len(item) == 8: # Cornell 8-point fallback
+                pts = np.array(item).reshape(4, 2)
+                cx, cy = pts.mean(axis=0)
+                width = np.linalg.norm(pts[0] - pts[3])
+                dy = pts[1][1] - pts[0][1]
+                dx = pts[1][0] - pts[0][0]
+                angle = math.atan2(dy, dx)
+                candidates.append(GraspCandidate(
+                    center_x=float(cx), center_y=float(cy), center_z=0.30, 
+                    width=float(width), angle=float(angle), original_score=1.0, 
+                    box=[float(pts[:,0].min()), float(pts[:,1].min()), float(pts[:,0].max()), float(pts[:,1].max())],
+                    raw={'pts': pts.tolist()}
+                ))
+            elif isinstance(item, dict) and 'box' in item:
+                box = item['box']
+                cx = (box[0] + box[2]) / 2.0
+                cy = (box[1] + box[3]) / 2.0
+                width = min(box[2] - box[0], box[3] - box[1])
+                angle = 0.0
+                score = item.get('score', 1.0)
+                candidates.append(GraspCandidate(
+                    center_x=float(cx), center_y=float(cy), center_z=0.0,
+                    width=float(width), angle=angle, original_score=float(score),
+                    box=box,
+                    raw=item
+                ))
+        return candidates
+
+@AdapterFactory.register("yolo_seg")
+class YoloSegGraspAdapter(BaseGraspAdapter):
+    """
+    YOLO Segmentation (Mask) 기반 어댑터.
+    raw_output: dict
+        - 'mask': np.ndarray (2D boolean/binary array)
+        - 'box': [xmin, ymin, xmax, ymax] (optional)
+        - 'score': float
+    """
+    def adapt(self, raw_output: Any) -> List[GraspCandidate]:
+        import cv2
+        candidates = []
+        if isinstance(raw_output, list):
+            items = raw_output
+        else:
+            items = [raw_output]
+            
+        for item in items:
+            if not isinstance(item, dict) or 'mask' not in item:
+                continue
+            
+            mask = item['mask']
+            if mask.dtype == bool:
+                mask = mask.astype(np.uint8) * 255
+            elif mask.max() == 1:
+                mask = (mask * 255).astype(np.uint8)
+                
+            # 무게중심 (Centroid) 계산
+            M = cv2.moments(mask)
+            if M["m00"] != 0:
+                cx = M["m10"] / M["m00"]
+                cy = M["m01"] / M["m00"]
+            else:
+                continue
+                
+            # 윤곽선 추출 및 PCA/장축단축 계산
+            contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+            if not contours:
+                continue
+            
+            contour = max(contours, key=cv2.contourArea)
+            
+            if len(contour) >= 5:
+                # 타원 피팅을 통해 장축 각도 및 단축 길이 추출
+                ellipse = cv2.fitEllipse(contour)
+                (center, axes, angle_deg) = ellipse
+                # opencv fitEllipse angle: 수직(0도)에서 시계방향 회전. 
+                # GraspCandidate angle: 수평축 기준(X축) 반시계방향 라디안.
+                # 보정 처리
+                angle_rad = math.radians(angle_deg) - (math.pi / 2)
+                width = min(axes[0], axes[1])
+            else:
+                x, y, w, h = cv2.boundingRect(contour)
+                angle_rad = 0.0
+                width = min(w, h)
+                
+            # 집게 하드웨어 최대 벌림 폭 (픽셀 단위 근사값 90px) 초과 방지
+            max_hardware_width = 90.0
+            width = min(width, max_hardware_width)
+            
+            score = item.get('score', 1.0)
+            box = item.get('box', None)
+            
+            binary_mask = (mask > 0).astype(np.uint8)
             
             candidates.append(GraspCandidate(
-                center_x=float(cx), center_y=float(cy), center_z=0.30, 
-                width=float(width), angle=float(angle), original_score=1.0, 
-                raw={'pts': pts}
+                center_x=float(cx), center_y=float(cy), center_z=0.0,
+                width=float(width), angle=float(angle_rad), original_score=float(score),
+                mask=binary_mask, box=box,
+                raw=item
             ))
+            
         return candidates

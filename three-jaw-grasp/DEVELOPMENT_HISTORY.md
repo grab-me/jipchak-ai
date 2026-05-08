@@ -78,3 +78,13 @@
 15. **If 문 제거 및 동적 로딩 (Dynamic Import)** (예정)
     - `run_pipeline.py` 원본 코드 안의 모델 의존성을 0%로 만들고, 오직 파이썬 내부 `importlib`을 활용한 **자료구조 기반 동적 팩토리 패턴(Factory Pattern)** 적용 대기. 
     - 사용자가 밖에서 작성한 파일 경로만 파이프라인에 주면 USB처럼 바로 꽂히는 궁극적 플랫폼으로 고도화될 예정입니다.
+# Development History
+
+## 2026-05
+
+1. `run_pipeline.py`를 factory 기반 실행 흐름으로 정리
+2. `yolo` 경로에서 mock model + adapter 직접 연결
+3. `ChickEvaluator`를 측정 가능 변수 중심으로 재구성
+4. `ThreeJawEvaluator`를 `jaw_count` 기반으로 일반화
+5. `visualizer`를 `draw_n_jaw_grasp`로 일반화
+6. 문서(README/walkthrough/interface contract)를 현재 코드 기준으로 갱신

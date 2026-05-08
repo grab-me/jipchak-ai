@@ -44,3 +44,26 @@
 1. **플러그 앤 플레이(Plug & Play) 가능**: 사용자가 파이프라인 내부 코드를 몰라도, 자신만의 모델/어댑터/학습코드를 작성하고 데코레이터만 달아주면 파이프라인의 시각화 및 평가 기능을 즉시 활용할 수 있습니다.
 2. **코드 유지보수성 향상**: 새로운 딥러닝 모델이 등장하더라도 `run_pipeline.py` 등 핵심 로직은 변경되지 않으므로 안정적인 시스템 확장이 가능해졌습니다.
 3. **관심사의 완벽한 분리**: 모델 개발자(YOLO 최적화 담당)와 파이프라인 개발자(시각화 및 3발 집게 로봇 공학 로직 담당)가 코드가 충돌할 우려 없이 완전히 독립된 폴더에서 협업할 수 있습니다.
+# Refactoring Report
+
+## 2026-05 Update
+
+### 1) Jaw-count generalization
+- `ThreeJawEvaluator`에 `jaw_count` 추가
+- `stability/symmetry/mask_collision` 계산을 N-jaw로 일반화
+- `jaw_count=3`이면 120도 간격 유지
+
+### 2) Visualizer generalization
+- `draw_n_jaw_grasp()` 추가
+- `draw_three_jaw_grasp()`는 하위 호환 래퍼로 유지
+
+### 3) Run pipeline CLI update
+- `--jaw-count`
+- `--evaluator {default,chick}`
+
+### 4) Chick evaluator update
+- 측정 가능한 변수 기반 점수 구성 유지
+- `jaw_count` 연동
+
+### 5) Example cleanup
+- `examples/wrappers.py`를 `YoloMockModel` 중심으로 축소

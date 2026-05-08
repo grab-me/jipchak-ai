@@ -32,3 +32,5 @@ venv/
 
 # 수집한 데이터셋 (용량/개인 PC, 메인은 별도 스토리지)
 D435-test/dataset/
+gr-convnet/server.log
+gr-convnet/result.json

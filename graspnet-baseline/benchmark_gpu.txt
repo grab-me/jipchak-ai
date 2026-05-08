@@ -1,0 +1,48 @@
+/home/j-k14d108/jipchak-ai-chaemok/graspnet-baseline/utils/loss_utils.py:89: UserWarning: Using torch.cross without specifying the dim arg is deprecated.
+Please either pass the dim explicitly or simply use torch.linalg.cross.
+The default value of dim will change to agree with that of linalg.cross in a future release. (Triggered internally at ../aten/src/ATen/native/Cross.cpp:62.)
+  axis_z = torch.cross(axis_x, axis_y)
+======================================================================
+GraspNet Baseline - Latency Benchmark
+======================================================================
+Device: NVIDIA H200 NVL  (torch device: cuda:0)
+PyTorch: 2.3.0+cu121, CUDA build: 12.1
+Checkpoint: logs/log_rs/checkpoint-rs.tar
+Data: doc/example_data
+NUM_POINT: 20000, NUM_VIEW: 300
+Warmup: 3, Runs: 20
+======================================================================
+
+[1/4] Loading model...
+      Model loaded in 206.6 ms
+      Params: 1,025,964 (4.1 MB FP32)
+
+[2/4] Loading + processing data...
+      Point cloud: torch.Size([1, 20000, 3])
+      Workspace cloud: 513,688 points
+
+[3/4] Warmup x 3...
+      Warmup done.
+
+[4/4] Benchmark x 20...
+      Run 1: total=156.99ms, n_grasps=119
+
+======================================================================
+RESULTS
+======================================================================
+
+Stage                   mean (ms)        std        min        max
+----------------------------------------------------------------------
+forward_ms                  66.80       0.10      66.62      67.10
+decode_ms                    1.03       0.02       1.01       1.09
+collision_ms                89.29       1.75      88.58      96.86
+nms_sort_ms                  0.38       0.01       0.37       0.42
+total_ms                   157.50       1.74     156.66     165.02
+----------------------------------------------------------------------
+
+Throughput (full pipeline): 6.3 FPS
+Throughput (forward only):  15.0 FPS
+Avg n_grasps after collision+NMS: 119
+
+GPU peak memory: 0.72 GB allocated, 1.08 GB reserved
+======================================================================

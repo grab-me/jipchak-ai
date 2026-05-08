@@ -1,5 +1,6 @@
 from dataclasses import dataclass, field
-from typing import Dict, Any
+from typing import Dict, Any, Optional, List
+import numpy as np
 
 @dataclass
 class GraspCandidate:
@@ -13,6 +14,8 @@ class GraspCandidate:
     width: float
     angle: float  # Radian
     original_score: float
+    mask: Optional[np.ndarray] = None
+    box: Optional[List[float]] = None
     raw: Dict[str, Any] = field(default_factory=dict)  # 원본 모델의 추가 정보 저장용
 
     def __post_init__(self):
