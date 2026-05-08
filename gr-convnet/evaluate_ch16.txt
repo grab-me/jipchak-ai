@@ -1,0 +1,8 @@
+INFO:root:CUDA detected. Running with GPU acceleration.
+INFO:root:Loading Cornell Dataset...
+INFO:root:Validation size: 89
+INFO:root:Done
+INFO:root:
+Evaluating model trained-models/cornell-randsplit-rgbd-grconvnet3-drop1-ch16/epoch_30_iou_0.97
+INFO:root:Average evaluation time per image: 19.667606675223016ms
+INFO:root:IOU Results: 86/89 = 0.966292

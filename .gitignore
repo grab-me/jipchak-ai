@@ -16,3 +16,5 @@ build/
 # Logs (선택)
 benchmark.log
 demo.log
+gr-convnet/server.log
+gr-convnet/result.json

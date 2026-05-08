@@ -1,9 +1,11 @@
 """
-GraspNet baseline latency benchmark on H200.
+GraspNet baseline latency benchmark.
 Modified from demo.py - removes visualization, adds timing.
+Supports --device cuda:0 / cpu.
 """
 import os
 import sys
+import argparse
 import numpy as np
 import torch
 import time
@@ -27,20 +29,17 @@ NUM_POINT = 20000
 NUM_VIEW = 300
 COLLISION_THRESH = 0.01
 VOXEL_SIZE = 0.01
-N_WARMUP = 3
-N_RUNS = 20
 
 
-def get_net():
+def get_net(device):
     net = GraspNet(input_feature_dim=0, num_view=NUM_VIEW, num_angle=12, num_depth=4,
                    cylinder_radius=0.05, hmin=-0.02, hmax_list=[0.01, 0.02, 0.03, 0.04],
                    is_training=False)
-    device = torch.device("cuda:0")
     net.to(device)
     checkpoint = torch.load(CHECKPOINT_PATH, map_location=device, weights_only=False)
     net.load_state_dict(checkpoint['model_state_dict'])
     net.eval()
-    return net, device
+    return net
 
 
 def get_and_process_data(data_dir):
@@ -78,11 +77,13 @@ def get_and_process_data(data_dir):
     return end_points, cloud_masked
 
 
-def time_block(label, fn):
-    torch.cuda.synchronize()
+def time_block(label, fn, device):
+    if device.type == 'cuda':
+        torch.cuda.synchronize()
     t0 = time.perf_counter()
     out = fn()
-    torch.cuda.synchronize()
+    if device.type == 'cuda':
+        torch.cuda.synchronize()
     t1 = time.perf_counter()
     return out, (t1 - t0) * 1000
 
@@ -95,13 +96,13 @@ def run_inference(net, device, end_points, cloud_masked, measure=True):
     def _forward():
         with torch.no_grad():
             return net(end_points)
-    fwd_out, t_fwd = time_block('forward', _forward)
+    fwd_out, t_fwd = time_block('forward', _forward, device)
     timings['forward_ms'] = t_fwd
 
     # 2. Decode (GPU)
     def _decode():
         return pred_decode(fwd_out)
-    grasp_preds, t_dec = time_block('decode', _decode)
+    grasp_preds, t_dec = time_block('decode', _decode, device)
     timings['decode_ms'] = t_dec
 
     gg_array = grasp_preds[0].detach().cpu().numpy()
@@ -130,11 +131,25 @@ def run_inference(net, device, end_points, cloud_masked, measure=True):
 
 
 def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--device', type=str, default='cuda:0',
+                        help='cuda:0 or cpu')
+    parser.add_argument('--n_warmup', type=int, default=3)
+    parser.add_argument('--n_runs', type=int, default=20)
+    args = parser.parse_args()
+
+    device = torch.device(args.device)
+    N_WARMUP = args.n_warmup
+    N_RUNS = args.n_runs
+
     print("=" * 70)
     print("GraspNet Baseline - Latency Benchmark")
     print("=" * 70)
-    print(f"Device: {torch.cuda.get_device_name(0)}")
-    print(f"PyTorch: {torch.__version__}, CUDA: {torch.version.cuda}")
+    if device.type == 'cuda':
+        print(f"Device: {torch.cuda.get_device_name(device)}  (torch device: {device})")
+    else:
+        print(f"Device: CPU  (threads: {torch.get_num_threads()})")
+    print(f"PyTorch: {torch.__version__}, CUDA build: {torch.version.cuda}")
     print(f"Checkpoint: {CHECKPOINT_PATH}")
     print(f"Data: {DATA_DIR}")
     print(f"NUM_POINT: {NUM_POINT}, NUM_VIEW: {NUM_VIEW}")
@@ -143,7 +158,7 @@ def main():
 
     print("\n[1/4] Loading model...")
     t0 = time.perf_counter()
-    net, device = get_net()
+    net = get_net(device)
     print(f"      Model loaded in {(time.perf_counter()-t0)*1000:.1f} ms")
     n_params = sum(p.numel() for p in net.parameters())
     print(f"      Params: {n_params:,} ({n_params*4/1e6:.1f} MB FP32)")
@@ -157,7 +172,8 @@ def main():
     for i in range(N_WARMUP):
         ep_copy = {k: (v.clone() if torch.is_tensor(v) else v) for k, v in end_points.items()}
         _, _ = run_inference(net, device, ep_copy, cloud_masked)
-    torch.cuda.synchronize()
+    if device.type == 'cuda':
+        torch.cuda.synchronize()
     print("      Warmup done.")
 
     print(f"\n[4/4] Benchmark x {N_RUNS}...")
@@ -171,10 +187,6 @@ def main():
         n_grasps_list.append(t['n_grasps'])
         if i == 0:
             print(f"      Run 1: total={t['total_ms']:.2f}ms, n_grasps={t['n_grasps']}")
-
-    # GPU memory
-    mem_alloc = torch.cuda.max_memory_allocated() / 1e9
-    mem_reserved = torch.cuda.max_memory_reserved() / 1e9
 
     # Stats
     print("\n" + "=" * 70)
@@ -192,7 +204,10 @@ def main():
     print(f"\nThroughput (full pipeline): {1000/total.mean():.1f} FPS")
     print(f"Throughput (forward only):  {1000/fwd.mean():.1f} FPS")
     print(f"Avg n_grasps after collision+NMS: {np.mean(n_grasps_list):.0f}")
-    print(f"\nGPU peak memory: {mem_alloc:.2f} GB allocated, {mem_reserved:.2f} GB reserved")
+    if device.type == 'cuda':
+        mem_alloc = torch.cuda.max_memory_allocated(device) / 1e9
+        mem_reserved = torch.cuda.max_memory_reserved(device) / 1e9
+        print(f"\nGPU peak memory: {mem_alloc:.2f} GB allocated, {mem_reserved:.2f} GB reserved")
     print("=" * 70)
 
 
