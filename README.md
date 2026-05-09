@@ -8,14 +8,23 @@
 
 ## 한눈 보기 (어디까지 왔나)
 
+**Grasp AI 트랙 (어디를 잡을지)**
 ```
 [1] 모델 후보 비교            ✅ 끝 — GraspNet 탈락, GR-ConvNet 채택
 [2] 정량 검증 (Cornell)       ✅ 끝 — ch16 IoU 0.97 재현
 [3] 정성 검증 (Cornell)       ✅ 끝 — 5장 일관성 우수
 [4] Fine-tune 파이프라인 검증 ✅ 끝 — --pretrained patch 동작, 50 step IoU 0.955
-[5] 도메인 갭 검증            ⏸  보류 — RealSense D405 재구매 대기
-[6] 인형 데이터 fine-tune     ⏳ 위 셋업 후
-[7] 시스템 통합               ⏳ 메인 레포에서
+[5] 운영 인터페이스           ✅ 끝 — FastAPI 5.83ms (171 FPS) 검증
+[6] 도메인 갭 검증            ⏸  RealSense 재구매 대기
+[7] 인형 데이터 fine-tune     ⏳ 위 셋업 후
+```
+
+**Detection AI 트랙 (무엇을/어디에 있는지)**  ← 추가 트랙
+```
+[1] 후보 라이선스 정리        ✅ 끝 — DETECTION_PLAN.md (YOLOX/RT-DETR Apache 후보)
+[2] PoC latency 측정          ⏳ — 카메라 무관, 다음 작업 가능
+[3] 인형 도메인 fine-tune     ⏳ Grasp AI 와 같은 데이터 사용
+[4] 두 AI 통합                ⏳ Detection bbox → workspace mask → Grasp AI
 ```
 
 **현재 상태 (2026-04-27)**: 단독 진행 가능한 모델 작업 거의 완료. RealSense 카메라 도착 → 인형 RGB-D 데이터 수집 → fine-tune 이 다음 unblocker.
@@ -73,9 +82,10 @@ jipchak-ai/
 │   ├── infer_server.py       # FastAPI 서버 (운영용, 모델 1회 로드)
 │   ├── train_network.py      # 학습 (--pretrained patch 적용)
 │   └── logs/                 # fine-tune 검증 결과
-├── MODEL_DECISION.md         # 모델 선정 결정문 + 한계
+├── MODEL_DECISION.md         # Grasp AI 선정 결정문 + 한계
 ├── BENCHMARKS.md             # 모든 측정 결과 + 재현 명령
-├── FINETUNE_PLAN.md          # fine-tune 청사진 + 코드 patch 계획
+├── FINETUNE_PLAN.md          # Grasp AI fine-tune 청사진
+├── DETECTION_PLAN.md         # Detection AI (YOLO 류) 후보 정리
 └── README.md                 # 이 문서
 ```
 

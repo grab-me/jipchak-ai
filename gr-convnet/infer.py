@@ -65,7 +65,7 @@ class GraspInfer:
         self.device = torch.device(device)
         self.output_size = output_size
         self.checkpoint = checkpoint
-        self.net = torch.load(checkpoint, map_location=self.device)
+        self.net = torch.load(checkpoint, map_location=self.device, weights_only=False)
         self.net.eval()
 
     def predict(
@@ -77,12 +77,14 @@ class GraspInfer:
         top_k: int = 5,
         peak_min_distance: int = 20,
         peak_threshold: float = 0.2,
+        workspace_mask: Optional[np.ndarray] = None,
     ) -> list[Grasp3DoF]:
         """
         :param rgb: (H, W, 3) uint8
         :param depth_m: (H, W) float32 — meter 단위 (z 좌표 추출용)
         :param depth_raw: (H, W) — 모델 입력용 raw 분포 유지값. 없으면 depth_m*1000
         :param top_k: 최대 후보 수
+        :param workspace_mask: (H, W) bool — True 영역만 grasp 후보 허용 (Detection AI bbox 통합 시)
         :return: list[Grasp3DoF] — confidence 내림차순
         """
         H, W = rgb.shape[:2]
@@ -113,6 +115,7 @@ class GraspInfer:
             top_k=top_k,
             peak_min_distance=peak_min_distance,
             peak_threshold=peak_threshold,
+            workspace_mask=workspace_mask,
         )
 
 
