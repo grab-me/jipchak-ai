@@ -13,6 +13,14 @@ build/
 .git.original-graspnet/
 *.tar.gz
 
+# Claude Code
+.claude/
+
+# Virtual environments
+venv/
+.venv/
+env/
+
 # Logs (선택)
 benchmark.log
 demo.log
